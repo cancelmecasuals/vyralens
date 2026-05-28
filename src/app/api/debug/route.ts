@@ -2,75 +2,63 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const apifyKey = process.env.APIFY_API_KEY?.trim();
+  const scKey = process.env.SCRAPECREATORS_API_KEY?.trim();
+  const bdToken = process.env.BRIGHT_DATA_API_KEY?.trim();
   const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
-  const actor = req.nextUrl.searchParams.get('actor') || 'breathtaking_anthem~instagram-hashtag-posts-scraper';
 
-  const inputMap: Record<string, any> = {
-    'breathtaking_anthem~instagram-hashtag-posts-scraper': {
-      hashtag: keyword,
-      resultsLimit: 100,
-      sortBy: 'top',
-    },
-    'scrapeengine~instagram-hashtag-scraper': {
-      startUrls: [`https://www.instagram.com/explore/tags/${keyword}/`],
-      maxItems: 50,
-    },
-    'apify~instagram-hashtag-scraper': {
-      hashtags: [keyword],
-      resultsLimit: 100,
-    },
-    'zuzka~instagram-hashtag-scraper': {
-      hashtags: [keyword],
-      maxResults: 100,
-      sortBy: 'top',
-    },
-    'lhotse~instagram-hashtag-scraper': {
-      hashtags: [keyword],
-      limit: 100,
-      type: 'top',
-    },
-  };
+  // ScrapeCreators Instagram Reels keyword search via Google
+  const res = await fetch(
+    `https://api.scrapecreators.com/v1/instagram/reels/search?query=${encodeURIComponent(keyword)}`,
+    {
+      headers: { 'x-api-key': scKey || '' },
+      signal: AbortSignal.timeout(15000),
+    }
+  );
 
-  const input = inputMap[actor] || inputMap['breathtaking_anthem~instagram-hashtag-posts-scraper'];
+  const data = await res.json();
+  const reels = data?.reels || data?.data || data?.results || data?.items || [];
 
-  try {
-    const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=512&maxItems=50`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-      signal: AbortSignal.timeout(95000),
-    });
+  // Now enrich with Bright Data to get real like counts
+  let enriched: any[] = [];
+  if (Array.isArray(reels) && reels.length > 0 && bdToken) {
+    const urls = reels
+      .map((r: any) => r.url || r.postUrl || r.link)
+      .filter(Boolean)
+      .slice(0, 20)
+      .map((url: string) => ({ url }));
 
-    const text = await res.text();
-    let data: any;
-    try { data = JSON.parse(text); } catch { data = text.slice(0, 300); }
-
-    const items = Array.isArray(data) ? data : (data?.items || data?.posts || []);
-    const withLikes = items.filter((i: any) => (i.likesCount || i.likes || i.diggCount || i.like_count || 0) > 0);
-    const sorted = withLikes.sort((a: any, b: any) => {
-      const aL = a.likesCount || a.likes || a.like_count || 0;
-      const bL = b.likesCount || b.likes || b.like_count || 0;
-      return bL - aL;
-    });
-
-    return NextResponse.json({
-      actor, status: res.status,
-      totalItems: items.length,
-      itemsWithLikes: withLikes.length,
-      maxLikes: sorted[0] ? (sorted[0].likesCount || sorted[0].likes || sorted[0].like_count || 0) : 0,
-      sampleKeys: items[0] ? Object.keys(items[0]).slice(0, 20) : [],
-      top5: sorted.slice(0, 5).map((i: any) => ({
-        likes: i.likesCount || i.likes || i.like_count,
-        views: i.videoViewCount || i.playCount || i.videoPlayCount || i.views,
-        url: i.url || i.postUrl || i.shortCode,
-        caption: (i.caption || i.text || i.description || '').slice(0, 80),
-        hashtags: (i.hashtags || []).slice(0, 5),
-      })),
-      rawSample: typeof data === 'object' ? JSON.stringify(data).slice(0, 400) : data,
-    });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message, actor });
+    if (urls.length > 0) {
+      const bdRes = await fetch(
+        `https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_lk5ns7kz21pck8jpis&format=json`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${bdToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(urls),
+          signal: AbortSignal.timeout(55000),
+        }
+      );
+      if (bdRes.ok) {
+        const bdPosts = await bdRes.json();
+        enriched = Array.isArray(bdPosts) ? bdPosts
+          .sort((a: any, b: any) => (b.likes || b.num_likes || 0) - (a.likes || a.num_likes || 0))
+          .map((p: any) => ({
+            likes: p.likes || p.num_likes,
+            views: p.video_view_count || p.views,
+            username: p.user_posted,
+            url: p.url,
+            caption: p.description?.slice(0, 80),
+          })) : [];
+      }
+    }
   }
+
+  return NextResponse.json({
+    status: res.status,
+    rawKeys: Object.keys(data || {}),
+    reelsFound: Array.isArray(reels) ? reels.length : 0,
+    sampleReel: reels[0] || null,
+    enrichedCount: enriched.length,
+    maxLikes: enriched[0]?.likes || 0,
+    top5Enriched: enriched.slice(0, 5),
+  });
 }
