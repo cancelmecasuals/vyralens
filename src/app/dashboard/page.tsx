@@ -401,9 +401,9 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
         });
         const data = await res.json();
         if (data.url) window.location.href = data.url;
-        else alert('Something went wrong — please try again.');
-      } catch (e) {
-        alert('Something went wrong — please try again.');
+        else alert(`Error: ${data.error || 'Unknown error — please try again.'}`);
+      } catch (e: any) {
+        alert(`Error: ${e.message}`);
       }
     };
 
