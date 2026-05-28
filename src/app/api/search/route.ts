@@ -127,10 +127,11 @@ async function searchInstagram(keyword: string, page = 0) {
       .range(offset, offset + 24);
 
     if (dbPosts && dbPosts.length > 0) {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vyralens.vercel.app';
+      // Trigger background refresh if stale
       const oldest = dbPosts[0]?.updated_at;
       if (oldest && new Date(oldest) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) {
-        fetch(`${siteUrl}/api/crawl?secret=${process.env.CRAWL_SECRET}&keyword=${tag}&step=auto`).catch(() => {});
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vyralens.vercel.app';
+        fetch(`${siteUrl}/api/crawl?secret=${process.env.CRAWL_SECRET}&keyword=${tag}`).catch(() => {});
       }
       return dbPosts.map((post: any) => {
         const views = post.view_count || 0;
@@ -140,7 +141,7 @@ async function searchInstagram(keyword: string, page = 0) {
         const postUrl = post.post_url || (post.shortcode ? (isVideo ? `https://www.instagram.com/reel/${post.shortcode}/` : `https://www.instagram.com/p/${post.shortcode}/`) : null);
         return {
           id: `ig-${post.id}`, platform: 'Instagram',
-          hook: post.hook || 'Instagram Post',
+          hook: post.hook || post.caption?.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
           description: post.caption || '',
           accountName: `@${post.username}`,
           accountFollowers: post.full_name || '',
@@ -158,104 +159,57 @@ async function searchInstagram(keyword: string, page = 0) {
       });
     }
 
-    // DB empty — trigger crawl and fetch live via Instagram's actual search API
+    // DB empty — trigger background crawl and serve live data
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vyralens.vercel.app';
-    fetch(`${siteUrl}/api/crawl?secret=${process.env.CRAWL_SECRET}&keyword=${tag}&step=auto`).catch(() => {});
+    fetch(`${siteUrl}/api/crawl?secret=${process.env.CRAWL_SECRET}&keyword=${tag}`).catch(() => {});
 
-    const sessionId = process.env.INSTAGRAM_SESSION_ID?.trim();
-    const csrfToken = process.env.INSTAGRAM_CSRF_TOKEN?.trim();
-    const dsUserId = process.env.INSTAGRAM_DS_USER_ID?.trim();
-    if (!sessionId) return [];
+    // Live fallback using parseforge directly
+    const apifyKey = process.env.APIFY_API_KEY?.trim();
+    if (!apifyKey) return [];
 
-    const headers: Record<string, string> = {
-      'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
-      'X-CSRFToken': csrfToken || '',
-      'X-IG-App-ID': '936619743392459',
-      'X-Requested-With': 'XMLHttpRequest',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Referer': 'https://www.instagram.com/',
-      'Accept': '*/*',
-    };
-
-    // Try Instagram's internal search endpoint — what the app actually uses
-    const searchUrl = `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=hashtag`;
-    const searchRes = await fetch(searchUrl, { headers: { ...headers, 'Referer': 'https://www.instagram.com/explore/' }, signal: AbortSignal.timeout(10000) });
-    
-    let medias: any[] = [];
-
-    if (searchRes.ok) {
-      const searchData = await searchRes.json();
-      // Extract hashtag results
-      const hashtags = searchData?.hashtags || searchData?.list || [];
-      const topHashtag = hashtags[0];
-      if (topHashtag?.hashtag?.id) {
-        // Now get posts for this hashtag
-        const tagRes = await fetch(
-          `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${topHashtag.hashtag.name || tag}`,
-          { headers: { ...headers, 'Referer': `https://www.instagram.com/explore/tags/${tag}/` }, signal: AbortSignal.timeout(10000) }
-        );
-        if (tagRes.ok) {
-          const tagData = await tagRes.json();
-          const sections = [...(tagData?.data?.top?.sections || []), ...(tagData?.data?.recent?.sections || [])];
-          for (const s of sections) {
-            for (const m of (s?.layout_content?.medias || [])) {
-              const media = m?.media || m;
-              if (media?.id) medias.push(media);
-            }
-          }
-        }
+    const apifyRes = await fetch(
+      `https://api.apify.com/v2/acts/parseforge~instagram-hashtag-analytics-scraper/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=512`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hashtag: tag, maxPosts: 50 }),
+        signal: AbortSignal.timeout(95000),
       }
-    }
+    );
 
-    // Fallback to direct tag info
-    if (!medias.length) {
-      const tagRes = await fetch(
-        `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${tag}`,
-        { headers: { ...headers, 'Referer': `https://www.instagram.com/explore/tags/${tag}/` }, signal: AbortSignal.timeout(10000) }
-      );
-      if (tagRes.ok) {
-        const tagData = await tagRes.json();
-        const sections = [...(tagData?.data?.top?.sections || []), ...(tagData?.data?.recent?.sections || [])];
-        for (const s of sections) {
-          for (const m of (s?.layout_content?.medias || [])) {
-            const media = m?.media || m;
-            if (media?.id) medias.push(media);
-          }
-        }
-      }
-    }
+    if (!apifyRes.ok) return [];
+    const apifyData = await apifyRes.json();
+    const items = Array.isArray(apifyData) ? apifyData : [];
+    const topPosts = items[0]?.topPosts || [];
 
-    if (!medias.length) return [];
-
-    return medias
-      .filter((m: any) => (m.like_count || 0) >= 50)
-      .map((media: any, i: number) => {
-        const likes = media.like_count || 0;
-        const comments = media.comment_count || 0;
-        const views = media.view_count || media.play_count || media.video_view_count || 0;
+    return topPosts
+      .filter((p: any) => (p.likeCount || 0) > 0)
+      .sort((a: any, b: any) => (b.likeCount || 0) - (a.likeCount || 0))
+      .map((post: any, i: number) => {
+        const likes = post.likeCount || 0;
+        const views = post.viewCount || 0;
         const rawScore = views > 0 ? views : likes * 15;
         const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(rawScore + 1, 1)) * 11)));
-        const caption = media.caption?.text || '';
-        const isVideo = media.media_type === 2;
-        const shortCode = media.code || '';
-        const postUrl = shortCode ? (isVideo ? `https://www.instagram.com/reel/${shortCode}/` : `https://www.instagram.com/p/${shortCode}/`) : null;
+        const isVideo = post.mediaType === 'video' || post.mediaType === 'reel';
+        const caption = post.caption || '';
+        const postUrl = post.postUrl || null;
+        const shortcode = post.shortcode || '';
         return {
-          id: `ig-${media.id || i}`, platform: 'Instagram',
+          id: `ig-${shortcode || i}`, platform: 'Instagram',
           hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
           description: caption.slice(0, 400),
-          accountName: `@${media.user?.username || 'creator'}`,
-          accountFollowers: media.user?.full_name || '',
-          thumbnail: media.image_versions2?.candidates?.[0]?.url || '', thumbnailEmoji: '📸',
+          accountName: `@${post.username || 'creator'}`,
+          accountFollowers: post.isVerified ? '✓ Verified' : '',
+          thumbnail: post.thumbnailUrl || '', thumbnailEmoji: '📸',
           views: views > 0 ? formatNum(views) : formatNum(likes * 15),
-          likes: formatNum(likes), comments: formatNum(comments), shares: '—',
-          score: vyraScore, rawScore,
-          postedTime: media.taken_at ? new Date(media.taken_at * 1000).toLocaleDateString() : 'Recent',
+          likes: formatNum(likes), comments: formatNum(post.commentCount || 0),
+          shares: '—', score: vyraScore, rawScore,
+          postedTime: post.timestamp ? new Date(post.timestamp).toLocaleDateString() : 'Recent',
           type: isVideo ? 'Instagram Reel' : 'Instagram Post',
-          videoUrl: media.video_url || null, postUrl, viewOriginalUrl: postUrl,
+          videoUrl: null, postUrl, viewOriginalUrl: postUrl,
           mediaType: isVideo ? 'video' : 'image', caption,
         };
-      })
-      .sort((a: any, b: any) => b.rawScore - a.rawScore);
+      });
 
   } catch (err) {
     console.error('Instagram search error:', err);
