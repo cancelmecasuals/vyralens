@@ -120,7 +120,7 @@ async function searchInstagram(keyword: string, page = 0) {
 
   const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  const headers = {
+  const headers: Record<string, string> = {
     'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
     'X-CSRFToken': csrfToken || '',
     'X-IG-App-ID': '936619743392459',
@@ -131,69 +131,101 @@ async function searchInstagram(keyword: string, page = 0) {
     'Accept-Language': 'en-US,en;q=0.9',
   };
 
-  try {
-    const url = `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${encodeURIComponent(tag)}`;
-    const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
-    if (!res.ok) { console.error('Instagram API error:', res.status); return []; }
-
-    const data = await res.json();
-    const topSections = data?.data?.top?.sections || [];
-    const recentSections = data?.data?.recent?.sections || [];
-    const allSections = [...topSections, ...recentSections];
-
+  function extractMediasFromSections(sections: any[]) {
     const medias: any[] = [];
-    const seen = new Set<string>();
-    for (const section of allSections) {
+    for (const section of sections) {
       for (const m of (section?.layout_content?.medias || [])) {
         const media = m?.media || m;
-        if (media?.id && !seen.has(media.id)) {
+        if (media?.id) medias.push(media);
+      }
+    }
+    return medias;
+  }
+
+  function formatMedia(media: any, i: number) {
+    const likes = media.like_count || 0;
+    const comments = media.comment_count || 0;
+    const views = media.view_count || media.play_count || media.video_view_count || media.ig_play_count || 0;
+    const rawScore = views > 0 ? views : likes * 15;
+    const vyraScore = Math.min(99, Math.max(50, Math.round(
+      Math.log10(Math.max(rawScore + 1, 1)) * 11
+    )));
+    const caption = media.caption?.text || '';
+    const isVideo = media.media_type === 2;
+    const username = media.user?.username || 'creator';
+    const shortCode = media.code || '';
+    const thumbCandidates = media.image_versions2?.candidates || [];
+    const thumbnail = thumbCandidates[0]?.url || media.thumbnail_url || '';
+    const postUrl = shortCode
+      ? (isVideo ? `https://www.instagram.com/reel/${shortCode}/` : `https://www.instagram.com/p/${shortCode}/`)
+      : null;
+    return {
+      id: `ig-${media.id || i}`,
+      platform: 'Instagram',
+      hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
+      description: caption.slice(0, 400),
+      accountName: `@${username}`,
+      accountFollowers: media.user?.full_name || '',
+      thumbnail, thumbnailEmoji: '📸',
+      views: views > 0 ? formatNum(views) : formatNum(likes * 15),
+      likes: formatNum(likes),
+      comments: formatNum(comments),
+      shares: '—',
+      score: vyraScore, rawScore,
+      postedTime: media.taken_at ? new Date(media.taken_at * 1000).toLocaleDateString() : 'Recent',
+      type: isVideo ? 'Instagram Reel' : 'Instagram Post',
+      videoUrl: media.video_url || null,
+      postUrl, viewOriginalUrl: postUrl,
+      mediaType: isVideo ? 'video' : 'image',
+      caption,
+    };
+  }
+
+  try {
+    // Fetch multiple pages in parallel for more content
+    const pageNums = page === 0 ? [0, 1, 2] : [page, page + 1];
+    
+    const fetchPage = async (pageNum: number) => {
+      try {
+        let url: string;
+        if (pageNum === 0) {
+          // First page: use web_info which returns top + recent sections
+          url = `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${encodeURIComponent(tag)}`;
+          const res = await fetch(url, { headers, signal: AbortSignal.timeout(12000) });
+          if (!res.ok) return [];
+          const data = await res.json();
+          const topSections = data?.data?.top?.sections || [];
+          const recentSections = data?.data?.recent?.sections || [];
+          return extractMediasFromSections([...topSections, ...recentSections]);
+        } else {
+          // Additional pages: use sections endpoint with page number
+          url = `https://www.instagram.com/api/v1/tags/${encodeURIComponent(tag)}/sections/?tab=top&page=${pageNum}&surface=grid`;
+          const res = await fetch(url, { headers, signal: AbortSignal.timeout(12000) });
+          if (!res.ok) return [];
+          const data = await res.json();
+          return extractMediasFromSections(data?.sections || []);
+        }
+      } catch { return []; }
+    };
+
+    const allPagesResults = await Promise.all(pageNums.map(fetchPage));
+    
+    // Merge, deduplicate, filter and sort
+    const seen = new Set<string>();
+    const allMedias: any[] = [];
+    for (const pageMedias of allPagesResults) {
+      for (const media of pageMedias) {
+        if (!seen.has(media.id) && (media.like_count || 0) >= 100) {
           seen.add(media.id);
-          medias.push(media);
+          allMedias.push(media);
         }
       }
     }
 
-    if (!medias.length) return [];
+    if (!allMedias.length) return [];
 
-    return medias
-      .filter((m: any) => (m.like_count || 0) >= 100)
-      .map((media: any, i: number) => {
-        const likes = media.like_count || 0;
-        const comments = media.comment_count || 0;
-        const views = media.view_count || media.play_count || media.video_view_count || 0;
-        const rawScore = views > 0 ? views : likes * 15;
-        const vyraScore = Math.min(99, Math.max(50, Math.round(
-          Math.log10(Math.max(rawScore + 1, 1)) * 11
-        )));
-        const caption = media.caption?.text || '';
-        const isVideo = media.media_type === 2;
-        const username = media.user?.username || 'creator';
-        const shortCode = media.code || media.shortcode || '';
-        const thumbCandidates = media.image_versions2?.candidates || [];
-        const thumbnail = thumbCandidates[0]?.url || media.thumbnail_url || '';
-        return {
-          id: `ig-${media.id || i}`,
-          platform: 'Instagram',
-          hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
-          description: caption.slice(0, 400),
-          accountName: `@${username}`,
-          accountFollowers: media.user?.full_name || '',
-          thumbnail, thumbnailEmoji: '📸',
-          views: views > 0 ? formatNum(views) : formatNum(likes * 15),
-          likes: formatNum(likes),
-          comments: formatNum(comments),
-          shares: '—',
-          score: vyraScore,
-          rawScore,
-          postedTime: media.taken_at ? new Date(media.taken_at * 1000).toLocaleDateString() : 'Recent',
-          type: isVideo ? 'Instagram Reel' : 'Instagram Post',
-          videoUrl: media.video_url || null,
-          postUrl: shortCode ? (isVideo ? `https://www.instagram.com/reel/${shortCode}/` : `https://www.instagram.com/p/${shortCode}/`) : null,
-          viewOriginalUrl: shortCode ? (isVideo ? `https://www.instagram.com/reel/${shortCode}/` : `https://www.instagram.com/p/${shortCode}/`) : null,
-          mediaType: isVideo ? 'video' : 'image',
-          caption,
-        };
-      })
+    return allMedias
+      .map(formatMedia)
       .sort((a: any, b: any) => b.rawScore - a.rawScore);
 
   } catch (err) {
