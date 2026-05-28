@@ -293,27 +293,57 @@ async function searchX(keyword: string, page = 0) {
   const scKey = process.env.SCRAPECREATORS_API_KEY?.trim();
   if (!scKey) return generateMockX(keyword, page);
 
-  try {
-    const url = `https://api.scrapecreators.com/v1/twitter/search?query=${encodeURIComponent(keyword)}&type=Top`;
-    const res = await fetch(url, {
-      headers: { 'x-api-key': scKey },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) { console.error('X SC error:', res.status); return generateMockX(keyword, page); }
-    const data = await res.json();
-    const tweets = data?.tweets || data?.data || data?.results || [];
-    if (!tweets.length) return generateMockX(keyword, page);
+  // Top X accounts per niche
+  const NICHE_ACCOUNTS: Record<string, string[]> = {
+    manifesting: ['lawofattraction', 'gabybernstein', 'tonyrobbins', 'oprah', 'lewishowes'],
+    realestate: ['ryanserhant', 'grantcardone', 'biggerpockets', 'therealestaterobot', 'flippingmastery'],
+    fitness: ['davidgoggins', 'therock', 'chrisheria', 'athleanx', 'simeonpanda'],
+    mindset: ['garyvee', 'tonyrobbins', 'lewishowes', 'edmylett', 'melrobbins'],
+    sidehustle: ['alexhormozi', 'garyvee', 'patrickbet_david', 'grahamstephan', 'andrei_jikh'],
+    finance: ['grahamstephan', 'andrei_jikh', 'humphreytalks', 'yourrichbff', 'minoritymindset'],
+    motivation: ['davidgoggins', 'tonyrobbins', 'garyvee', 'lewishowes', 'edmylett'],
+    skincare: ['hyramylan', 'doctorshereene', 'paulaschoice', 'glowrecipe', 'theordinary'],
+    spirituality: ['deepakchopra', 'gabybernstein', 'oprah', 'yung_pueblo', 'eckharttolle'],
+    wealth: ['alexhormozi', 'grantcardone', 'patrickbet_david', 'robertkiyosaki', 'grahamstephan'],
+  };
 
-    return tweets.map((tweet: any, i: number) => {
-      const metrics = tweet.public_metrics || tweet.legacy || {};
-      const likes = metrics.favorite_count || metrics.like_count || tweet.likes || 0;
-      const retweets = metrics.retweet_count || tweet.retweets || 0;
-      const replies = metrics.reply_count || tweet.replies || 0;
-      const impressions = metrics.impression_count || tweet.impressions || likes * 20;
-      const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(impressions + 1, 1)) * 10)));
-      const text = tweet.full_text || tweet.text || tweet.legacy?.full_text || '';
-      const username = tweet.user?.screen_name || tweet.author?.username || tweet.username || 'user';
-      const tweetId = tweet.id_str || tweet.id || tweet.rest_id || '';
+  const tag = keyword.replace(/\s+/g, '').toLowerCase();
+  const accounts = NICHE_ACCOUNTS[tag] || NICHE_ACCOUNTS[keyword.split(' ')[0].toLowerCase()] || [];
+
+  if (!accounts.length) return generateMockX(keyword, page);
+
+  try {
+    // Pull top tweets from 2 accounts in parallel
+    const accountBatch = accounts.slice(page * 2, page * 2 + 2);
+    const results = await Promise.all(accountBatch.map(async (handle) => {
+      try {
+        const res = await fetch(`https://api.scrapecreators.com/v1/twitter/tweets?handle=${handle}`, {
+          headers: { 'x-api-key': scKey },
+          signal: AbortSignal.timeout(12000),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        const tweets = data?.tweets || data?.data || [];
+        return tweets.filter((t: any) => {
+          const text = t.full_text || t.text || t.legacy?.full_text || '';
+          return text.toLowerCase().includes(keyword.toLowerCase().split(' ')[0]);
+        }).slice(0, 10);
+      } catch { return []; }
+    }));
+
+    const allTweets = results.flat();
+    if (!allTweets.length) return generateMockX(keyword, page);
+
+    return allTweets.map((tweet: any, i: number) => {
+      const legacy = tweet.legacy || tweet;
+      const likes = legacy.favorite_count || tweet.likes || 0;
+      const retweets = legacy.retweet_count || tweet.retweets || 0;
+      const replies = legacy.reply_count || tweet.replies || 0;
+      const views = parseInt(tweet.view_count || tweet.views || '0') || likes * 20;
+      const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(views + 1, 1)) * 10)));
+      const text = legacy.full_text || tweet.text || tweet.full_text || '';
+      const username = tweet.user?.screen_name || tweet.username || 'user';
+      const tweetId = legacy.id_str || tweet.id_str || tweet.id || tweet.rest_id || '';
       const postUrl = tweetId ? `https://twitter.com/${username}/status/${tweetId}` : null;
       return {
         id: `x-${tweetId || i}`, platform: 'X / Twitter',
@@ -322,13 +352,14 @@ async function searchX(keyword: string, page = 0) {
         accountName: `@${username}`,
         accountFollowers: tweet.user?.followers_count ? formatNum(tweet.user.followers_count) + ' followers' : '',
         thumbnail: '', thumbnailEmoji: '✖️',
-        views: formatNum(impressions), likes: formatNum(likes),
+        views: formatNum(views), likes: formatNum(likes),
         comments: formatNum(replies), shares: formatNum(retweets),
-        score: vyraScore, rawScore: impressions || likes * 20,
-        postedTime: tweet.created_at ? new Date(tweet.created_at).toLocaleDateString() : 'Recent',
+        score: vyraScore, rawScore: views || likes * 20,
+        postedTime: legacy.created_at ? new Date(legacy.created_at).toLocaleDateString() : 'Recent',
         type: 'X Post', mediaType: 'text', postUrl, viewOriginalUrl: postUrl, videoUrl: null,
       };
-    }).sort((a: any, b: any) => b.rawScore - a.rawScore);
+    }).filter((t: any) => t.rawScore > 0)
+      .sort((a: any, b: any) => b.rawScore - a.rawScore);
   } catch (err) {
     console.error('X error:', err);
     return generateMockX(keyword, page);
@@ -380,21 +411,21 @@ async function searchReddit(keyword: string, page = 0) {
     if (!posts.length) return [];
 
     return posts.map((post: any, i: number) => {
-      const score = post.score || post.ups || 0;
+      const score = post.votes || post.score || post.ups || 0;
       const comments = post.num_comments || post.comments || 0;
       const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(score + 1, 1)) * 15)));
-      const postUrl = post.url || post.permalink ? `https://reddit.com${post.permalink}` : null;
+      const postUrl = post.permalink ? `https://reddit.com${post.permalink}` : post.url || null;
       return {
-        id: `reddit-${post.id || i}`, platform: 'Reddit',
-        hook: post.title?.slice(0, 120) || 'Reddit Post',
+        id: `reddit-${post.post_id || post.id || i}`, platform: 'Reddit',
+        hook: (post.title || post.name || '').slice(0, 120),
         description: post.selftext?.slice(0, 400) || post.title || '',
         accountName: `u/${post.author || 'user'}`,
-        accountFollowers: `r/${post.subreddit || 'all'}`,
+        accountFollowers: `r/${post.subreddit?.name || post.subreddit || 'all'}`,
         thumbnail: '', thumbnailEmoji: '🔴',
         views: formatNum(score * 8), likes: formatNum(score),
         comments: formatNum(comments), shares: '—',
         score: vyraScore, rawScore: score,
-        postedTime: post.created_utc ? new Date(post.created_utc * 1000).toLocaleDateString() : 'Recent',
+        postedTime: post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Recent',
         type: 'Reddit Post', mediaType: 'text', postUrl, viewOriginalUrl: postUrl, videoUrl: null,
       };
     }).sort((a: any, b: any) => b.rawScore - a.rawScore);
