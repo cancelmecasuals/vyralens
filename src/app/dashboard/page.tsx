@@ -479,361 +479,387 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
   }
 
 
+  const PLATFORM_ICONS: Record<string, string> = {
+    'TikTok': '🎵', 'Instagram': '📸', 'YouTube': '▶️', 'Reddit': '🔴',
+  };
+  const PLATFORM_COLORS: Record<string, string> = {
+    'TikTok': '#FF2D55', 'Instagram': '#E1306C', 'YouTube': '#FF0000', 'Reddit': '#FF4500',
+  };
+
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', fontFamily: "'Satoshi', 'DM Sans', sans-serif", color: '#fff' }}>
       <style dangerouslySetInnerHTML={{__html:`
         @import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=cabinet-grotesk@800,700,500&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
-        input:focus, textarea:focus { outline: none; }
-        .nav-item:hover { background: rgba(245,166,35,0.08) !important; color: #FFB73D !important; }
-        .result-card:hover { border-color: #F5A623 !important; transform: translateY(-2px); }
-        .save-btn:hover { background: rgba(108,99,255,0.2) !important; }
-        .platform-tab:hover { border-color: #F5A623 !important; }
-        .copy-btn:hover { background: rgba(108,99,255,0.2) !important; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(245,166,35,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(245,166,35,0.4); }
+        input, textarea { outline: none; }
+        input::placeholder { color: rgba(255,255,255,0.25); }
+        textarea::placeholder { color: rgba(255,255,255,0.25); }
+
+        .nav-btn { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; border: none; cursor: pointer; background: transparent; font-family: 'Satoshi','DM Sans',sans-serif; font-size: 13px; font-weight: 500; transition: all 0.15s; text-align: left; width: 100%; white-space: nowrap; overflow: hidden; color: rgba(255,255,255,0.4); }
+        .nav-btn:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
+        .nav-btn.active { background: rgba(245,166,35,0.1); color: #F5A623; }
+
+        .result-card { background: #0F0F0F; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 20px; cursor: pointer; transition: all 0.2s; animation: fadeUp 0.4s ease both; }
+        .result-card:hover { border-color: rgba(245,166,35,0.3); background: #131313; transform: translateY(-1px); }
+        .result-card.active { border-color: rgba(245,166,35,0.5); background: rgba(245,166,35,0.04); }
+
+        .platform-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s; font-family: 'Satoshi','DM Sans',sans-serif; color: rgba(255,255,255,0.4); }
+        .platform-pill:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); }
+        .platform-pill.active { border-color: #F5A623; background: rgba(245,166,35,0.08); color: #F5A623; }
+
+        .search-input { width: 100%; background: #0F0F0F; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 20px; color: #fff; font-size: 16px; font-family: 'Satoshi','DM Sans',sans-serif; transition: border-color 0.2s; }
+        .search-input:focus { border-color: rgba(245,166,35,0.4); }
+
+        .search-btn { background: #F5A623; color: #080808; border: none; padding: 16px 28px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Cabinet Grotesk','Satoshi',sans-serif; transition: all 0.2s; white-space: nowrap; letter-spacing: 0.01em; }
+        .search-btn:hover { background: #FFB73D; transform: translateY(-1px); }
+        .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .tab-btn { flex: 1; padding: 10px; background: transparent; border: none; border-bottom: 2px solid transparent; color: rgba(255,255,255,0.35); font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Satoshi','DM Sans',sans-serif; transition: all 0.15s; letter-spacing: 0.04em; text-transform: uppercase; }
+        .tab-btn.active { border-bottom-color: #F5A623; color: #F5A623; }
+
+        .outlier-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; font-family: 'Cabinet Grotesk','Satoshi',sans-serif; }
+
+        .stat-pill { display: flex; align-items: center; gap: 5px; font-size: 12px; color: rgba(255,255,255,0.4); }
+
+        .load-more { width: 100%; padding: 14px; background: transparent; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: rgba(255,255,255,0.4); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Satoshi','DM Sans',sans-serif; transition: all 0.2s; }
+        .load-more:hover { border-color: rgba(245,166,35,0.3); color: #F5A623; }
+
+        .copy-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Satoshi','DM Sans',sans-serif; transition: all 0.2s; }
+        .copy-btn:hover { background: rgba(245,166,35,0.1); border-color: rgba(245,166,35,0.3); color: #F5A623; }
+
+        .gen-btn { background: #F5A623; color: #080808; border: none; padding: 12px 20px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Cabinet Grotesk','Satoshi',sans-serif; transition: all 0.2s; width: 100%; }
+        .gen-btn:hover { background: #FFB73D; }
+        .gen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .date-pill { padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.07); background: transparent; color: rgba(255,255,255,0.35); font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Satoshi',sans-serif; transition: all 0.15s; letter-spacing: 0.04em; }
+        .date-pill.active { border-color: rgba(245,166,35,0.4); color: #F5A623; background: rgba(245,166,35,0.06); }
       `}}/>
 
-      {/* ── SIDEBAR ── */}
-      <aside style={{ width: sidebarOpen ? 240 : 72, background: C.surface, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease', flexShrink: 0, position: 'fixed', top: 0, bottom: 0, zIndex: 50, overflow: 'hidden' }}>
+      {/* SIDEBAR */}
+      <aside style={{ width: sidebarOpen ? 220 : 60, background: '#0A0A0A', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', transition: 'width 0.25s ease', flexShrink: 0, position: 'fixed', top: 0, bottom: 0, zIndex: 50, overflow: 'hidden' }}>
+        
         {/* Logo */}
-        <div style={{ padding: '20px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setSidebarOpen(!sidebarOpen)}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'linear-gradient(135deg, #0D0D0D, #F5A623)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'white', flexShrink: 0 }}>V</div>
-          {sidebarOpen && <span style={{ fontWeight: 700, fontSize: 18, color: C.text, whiteSpace: 'nowrap' }}>VYRA<span style={{ color: '#F5A623' }}>.</span></span>}
+        <div onClick={() => setSidebarOpen(!sidebarOpen)} style={{ padding: '20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: 64 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F5A623', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 15, fontWeight: 800, color: '#080808' }}>V</span>
+          </div>
+          {sidebarOpen && <span style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 17, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>VYRA<span style={{ color: '#F5A623' }}>.</span></span>}
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {NAV_ITEMS.map(item => (
-            <button key={item.id} className="nav-item" onClick={() => setActiveNav(item.id)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: activeNav === item.id ? 'rgba(245,166,35,0.12)' : 'transparent', color: activeNav === item.id ? C.violet : C.textSub, fontSize: 14, fontWeight: activeNav === item.id ? 600 : 400, fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
-              {sidebarOpen && item.label}
+        <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {[
+            { id: 'search', icon: '⌕', label: 'Discover' },
+            { id: 'trending', icon: '↑', label: 'Trending' },
+            { id: 'saved', icon: '◈', label: 'Saved' },
+            { id: 'competitors', icon: '◎', label: 'Spy Mode' },
+            { id: 'patterns', icon: '⊞', label: 'Patterns' },
+            { id: 'calendar', icon: '◻', label: 'Calendar' },
+            { id: 'predictor', icon: '◈', label: 'Predictor' },
+          ].map(item => (
+            <button key={item.id} className={`nav-btn ${activeNav === item.id ? 'active' : ''}`} onClick={() => setActiveNav(item.id)}>
+              <span style={{ fontSize: 16, flexShrink: 0, fontFamily: 'monospace', width: 20, textAlign: 'center' }}>{item.icon}</span>
+              {sidebarOpen && <span>{item.label}</span>}
             </button>
           ))}
         </nav>
 
-        <div style={{ padding: '12px 10px', borderTop: `1px solid ${C.border}` }}>
-          {sidebarOpen && (
-            <div style={{ padding: '8px 12px', marginBottom: 4, fontSize: 12, color: C.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.email}
-            </div>
-          )}
+        {/* Bottom */}
+        <div style={{ padding: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {sidebarOpen && <div style={{ padding: '6px 12px', fontSize: 11, color: 'rgba(255,255,255,0.25)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{user?.email}</div>}
           {subscription && (
-            <button onClick={async () => {
-              const res = await fetch('/api/stripe/portal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ customerId: subscription.stripe_customer_id }),
-              });
+            <button className="nav-btn" onClick={async () => {
+              const res = await fetch('/api/stripe/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerId: subscription.stripe_customer_id }) });
               const data = await res.json();
               if (data.url) window.location.href = data.url;
-            }} className="nav-item"
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSub, fontSize: 14, fontFamily: "'Satoshi', 'DM Sans', sans-serif", width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', marginBottom: 4 }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>💳</span>
-              {sidebarOpen && 'Manage Billing'}
+            }}>
+              <span style={{ fontSize: 14, flexShrink: 0, width: 20, textAlign: 'center' }}>⬡</span>
+              {sidebarOpen && <span style={{ fontSize: 13 }}>Billing</span>}
             </button>
           )}
-          <button onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }} className="nav-item"
-            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSub, fontSize: 14, fontFamily: "'Satoshi', 'DM Sans', sans-serif", width: '100%', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-            <span style={{ fontSize: 18, flexShrink: 0 }}>🚪</span>
-            {sidebarOpen && 'Sign Out'}
+          <button className="nav-btn" onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }}>
+            <span style={{ fontSize: 14, flexShrink: 0, width: 20, textAlign: 'center' }}>→</span>
+            {sidebarOpen && <span style={{ fontSize: 13 }}>Sign Out</span>}
           </button>
         </div>
       </aside>
 
-      {/* ── MAIN ── */}
-      <main style={{ flex: 1, marginLeft: sidebarOpen ? 240 : 72, minHeight: '100vh', transition: 'margin-left 0.3s ease', overflow: 'auto' }}>
+      {/* MAIN */}
+      <main style={{ flex: 1, marginLeft: sidebarOpen ? 220 : 60, minHeight: '100vh', transition: 'margin-left 0.25s ease', overflow: 'auto', background: '#080808' }}>
 
-        {/* ── SEARCH TAB ── */}
         {activeNav === 'search' && (
-          <div style={{ padding: '32px 32px' }}>
-            <div style={{ marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', fontFamily: "'Cabinet Grotesk', 'Satoshi', sans-serif", marginBottom: 6 }}>Find Viral Content</h1>
-              <p style={{ color: C.textSub, fontSize: 15 }}>Search any keyword across every platform simultaneously</p>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            
+            {/* Top bar */}
+            <div style={{ padding: '20px 32px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(20px)', zIndex: 10 }}>
+              <div>
+                <h1 style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', marginBottom: 2 }}>Discover</h1>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Find viral content across every platform</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F5A623', animation: 'pulse 2s infinite' }} />
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>LIVE</span>
+              </div>
             </div>
 
-            {/* Search bar */}
-            <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-              <input value={keyword} onChange={e => setKeyword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                placeholder="Enter any keyword, niche, or topic..."
-                style={{ flex: 1, padding: '14px 18px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 16, fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'border-color 0.2s' }} />
-              <button onClick={handleSearch} disabled={searching}
-                style={{ padding: '14px 28px', background: '#F5A623', border: 'none', borderRadius: 12, color: '#080808', fontSize: 15, fontWeight: 600, cursor: searching ? 'not-allowed' : 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", opacity: searching ? 0.8 : 1, whiteSpace: 'nowrap' }}>
-                {searching ? '⟳ Searching...' : '🔍 Search'}
-              </button>
-            </div>
+            <div style={{ padding: '28px 32px', display: 'grid', gridTemplateColumns: selectedPost ? '1fr 420px' : '1fr', gap: 24, alignItems: 'start' }}>
+              
+              {/* Left — search + results */}
+              <div>
+                {/* Search */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                    <input className="search-input" value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} placeholder="Search any keyword, niche, or topic..." />
+                    <button className="search-btn" onClick={handleSearch} disabled={searching}>
+                      {searching ? '···' : 'Search'}
+                    </button>
+                  </div>
 
-            {/* Platform filter */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              {PLATFORMS.map(p => (
-                <button key={p.id} className="platform-tab" onClick={() => {
-                    setActivePlatform(p.id);
-                    if (keyword.trim()) {
-                      setResults([]);
-                      setNextPageToken(null);
-                      setRedditAfter(null);
-                      setSelectedPost(null);
-                      setCurrentPage(0);
-                      setHasMore(false);
-                      setSearching(true);
-                      fetch('/api/search', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ keyword, platform: p.id, page: 0, dateFilter }),
-                      }).then(r => r.json()).then(data => {
-                        setResults(data.results || []);
-                        setNextPageToken(data.nextPageToken || null);
-                        setRedditAfter(data.redditAfter || null);
-                        setHasMore(data.hasMore !== false);
-                        setSearching(false);
-                      }).catch(() => setSearching(false));
-                    }
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: `1px solid ${activePlatform === p.id ? C.violet : C.border}`, background: activePlatform === p.id ? C.violetDim : 'transparent', color: activePlatform === p.id ? C.violet : C.textSub, fontSize: 13, fontWeight: activePlatform === p.id ? 600 : 400, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s' }}>
-                  {p.icon} {p.label}
-                </button>
-              ))}
-            </div>
+                  {/* Filters row */}
+                  <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {PLATFORMS.map(p => (
+                        <button key={p.id} className={`platform-pill ${activePlatform === p.id ? 'active' : ''}`}
+                          onClick={() => {
+                            setActivePlatform(p.id);
+                            if (keyword.trim()) {
+                              setResults([]); setNextPageToken(null); setRedditAfter(null); setSelectedPost(null); setCurrentPage(0); setHasMore(false); setSearching(true);
+                              fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, platform: p.id, page: 0, dateFilter }) })
+                                .then(r => r.json()).then(data => { setResults(data.results || []); setNextPageToken(data.nextPageToken || null); setRedditAfter(data.redditAfter || null); setHasMore(data.hasMore !== false); setSearching(false); }).catch(() => setSearching(false));
+                            }
+                          }}>
+                          {p.icon} {p.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                      {[{id:'all',l:'All Time'},{id:'year',l:'Year'},{id:'month',l:'Month'},{id:'week',l:'Week'}].map(f => (
+                        <button key={f.id} className={`date-pill ${dateFilter === f.id ? 'active' : ''}`}
+                          onClick={() => {
+                            setDateFilter(f.id);
+                            if (keyword.trim() && results.length > 0) {
+                              setResults([]); setCurrentPage(0); setSearching(true);
+                              fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, platform: activePlatform, page: 0, dateFilter: f.id }) })
+                                .then(r => r.json()).then(data => { setResults(data.results || []); setHasMore(data.hasMore !== false); setSearching(false); }).catch(() => setSearching(false));
+                            }
+                          }}>{f.l}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-            {/* Date filter */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 28, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: C.textSub, marginRight: 4 }}>Time period:</span>
-              {[
-                { id: 'all', label: '🏆 All Time' },
-                { id: 'year', label: '📅 This Year' },
-                { id: 'month', label: '🗓 This Month' },
-                { id: 'week', label: '⚡ This Week' },
-              ].map(f => (
-                <button key={f.id} onClick={() => {
-                  setDateFilter(f.id);
-                  if (keyword.trim() && results.length > 0) {
-                    setResults([]);
-                    setCurrentPage(0);
-                    setSearching(true);
-                    fetch('/api/search', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ keyword, platform: activePlatform, page: 0, dateFilter: f.id }),
-                    }).then(r => r.json()).then(data => {
-                      setResults(data.results || []);
-                      setHasMore(data.hasMore !== false);
-                      setSearching(false);
-                    }).catch(() => setSearching(false));
-                  }
-                }}
-                  style={{ padding: '5px 12px', borderRadius: 7, border: `1px solid ${dateFilter === f.id ? C.violet : C.border}`, background: dateFilter === f.id ? C.violetDim : 'transparent', color: dateFilter === f.id ? C.violet : C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s' }}>
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Results + Analysis panel */}
-            <div style={{ display: 'grid', gridTemplateColumns: selectedPost ? '1fr 1fr' : '1fr', gap: 20 }}>
-              {/* Results */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* Loading */}
                 {searching && (
-                  <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.border}`, borderTop: `3px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-                    <p style={{ color: C.textSub }}>Scanning all platforms for "{keyword}"...</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '40px 0', justifyContent: 'center' }}>
+                    <div style={{ width: 20, height: 20, border: '2px solid rgba(245,166,35,0.2)', borderTop: '2px solid #F5A623', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Scanning platforms for "{keyword}"...</span>
                   </div>
                 )}
-                {results.map((post, i) => (
-                  <div key={post.id} className="result-card" onClick={() => {
-                    setSelectedPost(post);
-                    setAnalysis('');
-                    setGeneratedScript('');
-                    setActiveTab('analysis');
-                    setTranscribeStatus('');
-                  }}
-                    style={{ background: C.surface, border: `1px solid ${selectedPost?.id === post.id ? C.violet : C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', transition: 'all 0.2s', animation: `fadeUp 0.4s ease ${i * 60}ms both` }}>
-                    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                      {/* Thumbnail */}
-                      <div style={{ width: 56, height: 56, borderRadius: 10, background: C.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0, overflow: 'hidden' }}>
-                        {post.thumbnail
-                          ? <img src={post.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : post.thumbnailEmoji || '📱'}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 100, background: C.violetDim, color: C.violet, fontWeight: 600 }}>{post.platform}</span>
-                          <span style={{ fontSize: 11, color: C.textSub }}>{post.postedTime}</span>
-                          <span style={{ fontSize: 11, color: C.textSub }}>·</span>
-                          <span style={{ fontSize: 11, color: C.textSub }}>{post.type}</span>
+
+                {/* Empty */}
+                {!searching && results.length === 0 && keyword && (
+                  <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.2)' }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>◎</div>
+                    <div style={{ fontSize: 15, fontFamily: "'Cabinet Grotesk',sans-serif", fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.3)' }}>No results yet</div>
+                    <div style={{ fontSize: 13 }}>Try a different keyword or platform</div>
+                  </div>
+                )}
+
+                {!searching && results.length === 0 && !keyword && (
+                  <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                    <div style={{ fontSize: 48, marginBottom: 20 }}>⌕</div>
+                    <div style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 18, fontWeight: 800, color: 'rgba(255,255,255,0.2)', marginBottom: 8, letterSpacing: '-0.01em' }}>Search anything</div>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.15)', maxWidth: 300, margin: '0 auto', lineHeight: 1.6 }}>fitness · real estate · manifesting · skincare · side hustle</div>
+                  </div>
+                )}
+
+                {/* Results */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {results.map((post, i) => (
+                    <div key={post.id} className={`result-card ${selectedPost?.id === post.id ? 'active' : ''}`}
+                      style={{ animationDelay: `${i * 40}ms` }}
+                      onClick={() => { setSelectedPost(post); setAnalysis(''); setGeneratedScript(''); setActiveTab('analysis'); setTranscribeStatus(''); }}>
+                      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                        
+                        {/* Thumbnail */}
+                        <div style={{ width: 52, height: 52, borderRadius: 10, background: post.thumbnail ? 'transparent' : `${PLATFORM_COLORS[post.platform] || '#333'}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          {post.thumbnail
+                            ? <img src={post.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            : <span style={{ fontSize: 22 }}>{PLATFORM_ICONS[post.platform] || '📱'}</span>}
                         </div>
-                        <p style={{ fontSize: 14, fontWeight: 500, color: C.text, marginBottom: 10, lineHeight: 1.5 }}>"{post.hook}"</p>
-                        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                          {[
-                            { label: '👁', val: post.views },
-                            { label: '❤️', val: post.likes },
-                            { label: '💬', val: post.comments },
-                            { label: '↗️', val: post.shares },
-                          ].map(m => (
-                            <div key={m.label} style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 12, color: C.textSub }}>
-                              <span>{m.label}</span> <span style={{ color: C.text, fontWeight: 500 }}>{m.val}</span>
-                            </div>
-                          ))}
-                          {/* VYRA Score */}
-                          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: '50%', background: `conic-gradient(#F5A623 ${post.score}%, rgba(255,255,255,0.08) 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <div style={{ width: 30, height: 30, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: C.violet }}>{post.score}</div>
-                            </div>
-                            <span style={{ fontSize: 10, color: C.textSub }}>VYRA Score</span>
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* Top row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                            <span style={{ background: `${PLATFORM_COLORS[post.platform] || '#333'}18`, color: PLATFORM_COLORS[post.platform] || '#fff', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 5, letterSpacing: '0.05em' }}>{post.platform}</span>
+                            {post.score >= 85 && (
+                              <span className="outlier-badge" style={{ background: 'rgba(245,166,35,0.12)', color: '#F5A623' }}>🔥 {post.score}/100</span>
+                            )}
+                            {post.score >= 70 && post.score < 85 && (
+                              <span className="outlier-badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>{post.score}/100</span>
+                            )}
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto', flexShrink: 0 }}>{post.postedTime}</span>
+                          </div>
+
+                          {/* Hook */}
+                          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5, marginBottom: 10, fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {post.hook || post.description}
+                          </div>
+
+                          {/* Stats */}
+                          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span className="stat-pill">
+                              <span style={{ color: '#F5A623' }}>❤</span> {post.likes}
+                            </span>
+                            <span className="stat-pill">
+                              <span>👁</span> {post.views}
+                            </span>
+                            <span className="stat-pill">
+                              <span>💬</span> {post.comments}
+                            </span>
+                            {post.accountName && (
+                              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', marginLeft: 'auto' }}>{post.accountName}</span>
+                            )}
                           </div>
                         </div>
                       </div>
-                      <button className="save-btn" onClick={e => { e.stopPropagation(); savePost(post); }}
-                        style={{ padding: '6px 10px', background: savedPosts.find(p => p.id === post.id) ? C.violetDim : 'transparent', border: `1px solid ${C.border}`, borderRadius: 7, color: savedPosts.find(p => p.id === post.id) ? C.violet : C.textSub, cursor: 'pointer', fontSize: 14, flexShrink: 0, transition: 'all 0.15s' }}>
-                        🔖
-                      </button>
-                      {(post.postUrl || post.viewOriginalUrl || post.videoUrl) && (
-                        <a href={post.postUrl || post.viewOriginalUrl || post.videoUrl} target="_blank" rel="noopener noreferrer"
-                          onClick={e => e.stopPropagation()}
-                          style={{ padding: '6px 10px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 7, color: C.textSub, cursor: 'pointer', fontSize: 11, flexShrink: 0, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-                          ↗
-                        </a>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
 
-                {/* Load More — always available */}
+                {/* Load more */}
                 {results.length > 0 && (
-                  <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                    <button onClick={loadMore} disabled={loadingMore}
-                      style={{ padding: '13px 40px', background: loadingMore ? 'transparent' : `linear-gradient(135deg, rgba(245,166,35,0.12), rgba(245,166,35,0.05))`, border: `1px solid ${loadingMore ? C.border : C.violet}`, borderRadius: 10, color: loadingMore ? C.textSub : C.violet, fontSize: 14, fontWeight: 500, cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.2s' }}>
-                      {loadingMore ? '⟳ Loading more...' : '↓ Load More Viral Content'}
+                  <div style={{ marginTop: 16 }}>
+                    <button className="load-more" onClick={loadMore} disabled={loadingMore}>
+                      {loadingMore ? 'Loading...' : 'Load more results'}
                     </button>
-                    <div style={{ fontSize: 11, color: C.textDim, marginTop: 8 }}>{results.length} posts loaded</div>
                   </div>
                 )}
               </div>
 
-              {/* Analysis Panel */}
+              {/* Right — Analysis panel */}
               {selectedPost && (
-                <div style={{ position: 'sticky', top: 20, maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}>
-                  <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden' }}>
-                    {/* Post header */}
-                    <div style={{ padding: '20px', borderBottom: `1px solid ${C.border}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                        <div>
-                          <div style={{ fontSize: 11, color: C.violet, fontWeight: 600, marginBottom: 4 }}>{selectedPost.platform} · {selectedPost.type}</div>
-                          <p style={{ fontSize: 14, fontWeight: 500, color: C.text, lineHeight: 1.5 }}>"{selectedPost.hook}"</p>
-                        </div>
-                        <button onClick={() => { setSelectedPost(null); setAnalysis(''); setGeneratedScript(''); setTranscribeStatus(''); }}
-                          style={{ background: 'transparent', border: 'none', color: C.textSub, cursor: 'pointer', fontSize: 18, flexShrink: 0, padding: '0 0 0 10px' }}>×</button>
+                <div style={{ background: '#0A0A0A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, overflow: 'hidden', position: 'sticky', top: 100 }}>
+                  {/* Post preview */}
+                  <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: `${PLATFORM_COLORS[selectedPost.platform] || '#333'}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                        {PLATFORM_ICONS[selectedPost.platform] || '📱'}
                       </div>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        <div style={{ fontSize: 11, color: C.textSub }}>{selectedPost.accountName}</div>
-                        <div style={{ fontSize: 11, color: C.textSub }}>·</div>
-                        <div style={{ fontSize: 11, color: C.textSub }}>{selectedPost.accountFollowers}</div>
-                        {(selectedPost.postUrl || selectedPost.viewOriginalUrl || selectedPost.videoUrl) && (
-                          <a href={selectedPost.postUrl || selectedPost.viewOriginalUrl || selectedPost.videoUrl} target="_blank" rel="noopener noreferrer"
-                            style={{ fontSize: 11, color: C.violet, textDecoration: 'none', marginLeft: 'auto' }}>
-                            View Original ↗
-                          </a>
-                        )}
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{selectedPost.accountName}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{selectedPost.platform} · {selectedPost.postedTime}</div>
                       </div>
+                      {selectedPost.viewOriginalUrl && (
+                        <a href={selectedPost.viewOriginalUrl} target="_blank" rel="noopener noreferrer"
+                          style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.08)', padding: '4px 10px', borderRadius: 6, transition: 'all 0.15s' }}
+                          onMouseOver={e => (e.currentTarget.style.color = '#F5A623')}
+                          onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
+                          View ↗
+                        </a>
+                      )}
                     </div>
-
-                    {/* Tabs */}
-                    <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}` }}>
-                      {['analysis', 'generate'].map((tab) => {
-                        const label = tab === 'analysis' ? '🧠 AI Analysis' : '✍️ Generate Content';
-                        const active = activeTab === tab;
-                        return (
-                          <button key={tab} onClick={() => setActiveTab(tab)}
-                            style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? C.violet : 'transparent'}`, color: active ? C.violet : C.textSub, fontSize: 13, fontWeight: active ? 600 : 400, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s' }}>
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div style={{ padding: '20px' }}>
-                      {/* Analysis Tab */}
-                      {activeTab === 'analysis' && (
-                        <>
-                          {analyzing && (
-                            <div style={{ textAlign: 'center', padding: '30px 0' }}>
-                              <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${C.border}`, borderTop: `2px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                              <p style={{ color: C.violet, fontSize: 13, fontWeight: 500 }}>{transcribeStatus || 'Analyzing...'}</p>
-                            </div>
-                          )}
-                      {!analyzing && !analysis && !transcribeStatus && (
-                        <div style={{ textAlign: 'center', padding: '30px 0' }}>
-                          <p style={{ color: C.textSub, fontSize: 13, marginBottom: 16 }}>
-                            Ready to analyze this post
-                          </p>
-                          <button onClick={() => analyzePost(selectedPost)}
-                            style={{ padding: '12px 28px', background: `linear-gradient(135deg, ${C.violet}, ${C.violet})`, border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
-                            🧠 Start Analysis
-                          </button>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, marginBottom: 14 }}>{selectedPost.hook}</p>
+                    <div style={{ display: 'flex', gap: 16 }}>
+                      {[['❤', selectedPost.likes], ['👁', selectedPost.views], ['💬', selectedPost.comments]].map(([icon, val], i) => (
+                        <div key={i} style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{val}</div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{icon}</div>
                         </div>
-                      )}
-                          {analysis && (
-                            <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{analysis}</div>
-                          )}
-                        </>
-                      )}
+                      ))}
+                    </div>
+                  </div>
 
-                      {/* Generate Content Tab */}
-                      {activeTab === 'generate' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {!generatedScript && (
-                          <>
-                            <div>
-                              <label style={{ fontSize: 11, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Your Niche</label>
-                              <input value={niche} onChange={e => setNiche(e.target.value)} placeholder="e.g. real estate, fitness, finance..."
-                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'Satoshi', 'DM Sans', sans-serif" }} />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: 11, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Output Format</label>
-                              <select value={selectedFormat} onChange={e => setSelectedFormat(e.target.value)}
-                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'Satoshi', 'DM Sans', sans-serif", cursor: 'pointer' }}>
-                                {CONTENT_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ fontSize: 11, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Your Style (paste 1-3 of your best posts)</label>
-                              <textarea value={userStyle} onChange={e => setUserStyle(e.target.value)} rows={3} placeholder="Paste examples of your content so VYRA can match your voice..."
-                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'Satoshi', 'DM Sans', sans-serif", resize: 'vertical' }} />
-                            </div>
-                            <button onClick={generateContent} disabled={generating}
-                              style={{ width: '100%', padding: '12px', background: '#F5A623', border: 'none', borderRadius: 9, color: 'white', fontSize: 14, fontWeight: 600, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", opacity: generating ? 0.8 : 1 }}>
-                              {generating ? '⟳ Generating...' : `✨ Generate ${selectedFormat}`}
-                            </button>
-                          </>
+                  {/* Tabs */}
+                  <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    {[['analysis','Analysis'],['script','Script'],['saved','Saved']].map(([id, label]) => (
+                      <button key={id} className={`tab-btn ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id as any)}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Tab content */}
+                  <div style={{ padding: '20px', maxHeight: 500, overflowY: 'auto' }}>
+                    {activeTab === 'analysis' && (
+                      <div>
+                        {!analysis && (
+                          <button className="gen-btn" style={{ marginBottom: 16 }} onClick={async () => {
+                            setAnalysis('loading');
+                            const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ post: selectedPost, type: 'analysis' }) });
+                            const data = await res.json();
+                            setAnalysis(data.result || 'Analysis failed');
+                          }}>
+                            {analysis === 'loading' ? '···' : '🧠 Analyze This Post'}
+                          </button>
                         )}
-                        {generating && (
-                          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                            <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${C.border}`, borderTop: `2px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                            <p style={{ color: C.textSub, fontSize: 13 }}>Writing your {selectedFormat}...</p>
+                        {analysis === 'loading' && (
+                          <div style={{ display: 'flex', gap: 10, alignItems: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+                            <div style={{ width: 14, height: 14, border: '2px solid rgba(245,166,35,0.2)', borderTop: '2px solid #F5A623', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                            Analyzing...
                           </div>
                         )}
+                        {analysis && analysis !== 'loading' && (
+                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{analysis}</div>
+                        )}
+                      </div>
+                    )}
+
+                    {activeTab === 'script' && (
+                      <div>
+                        <div style={{ marginBottom: 14 }}>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, display: 'block', marginBottom: 6 }}>Your Style</label>
+                          <textarea value={userStyle} onChange={e => setUserStyle(e.target.value)} rows={2}
+                            placeholder="Describe your style or paste examples..."
+                            style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 13, fontFamily: "'Satoshi','DM Sans',sans-serif", resize: 'none' }} />
+                        </div>
+                        <button className="gen-btn" style={{ marginBottom: 14 }} disabled={generatingScript}
+                          onClick={async () => {
+                            setGeneratingScript(true); setGeneratedScript('');
+                            const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ post: selectedPost, type: 'script', userStyle, format: selectedFormat }) });
+                            const data = await res.json();
+                            setGeneratedScript(data.result || ''); setGeneratingScript(false);
+                          }}>
+                          {generatingScript ? '···' : '✍️ Generate Script'}
+                        </button>
                         {generatedScript && (
-                          <div style={{ animation: 'fadeUp 0.3s ease' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Your {selectedFormat}</span>
-                              <div style={{ display: 'flex', gap: 8 }}>
-                                <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(generatedScript); }}
-                                  style={{ padding: '5px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s' }}>Copy</button>
-                                <button onClick={() => setGeneratedScript('')}
-                                  style={{ padding: '5px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>New</button>
-                              </div>
-                            </div>
-                            <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px', fontSize: 13, color: C.textSub, lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 400, overflowY: 'auto' }}>
-                              {generatedScript}
-                            </div>
+                          <div>
+                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: 12 }}>{generatedScript}</div>
+                            <button className="copy-btn" onClick={() => navigator.clipboard.writeText(generatedScript)}>Copy Script</button>
                           </div>
                         )}
                       </div>
-                      )}
-                    </div>
+                    )}
+
+                    {activeTab === 'saved' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {saved.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No saved posts yet</div>
+                        ) : saved.map((post, i) => (
+                          <div key={i} onClick={() => setSelectedPost(post)} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 4 }}>{post.hook?.slice(0, 60)}...</div>
+                            <div>{post.platform} · {post.likes} likes</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Save button */}
+                  <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <button onClick={() => { if (!saved.find(p => p.id === selectedPost.id)) setSaved([...saved, selectedPost]); }}
+                      style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi',sans-serif", transition: 'all 0.15s' }}
+                      onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(245,166,35,0.3)'; e.currentTarget.style.color = '#F5A623'; }}
+                      onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}>
+                      {saved.find(p => p.id === selectedPost.id) ? '◈ Saved' : '◇ Save Post'}
+                    </button>
                   </div>
                 </div>
               )}
@@ -841,235 +867,14 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
           </div>
         )}
 
-        {/* ── TRENDING TAB ── */}
-        {activeNav === 'trending' && (
-          <div style={{ padding: '32px' }}>
-            <div style={{ marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', fontFamily: "'Cabinet Grotesk', 'Satoshi', sans-serif", marginBottom: 6 }}>Trending Now 🔥</h1>
-              <p style={{ color: C.textSub, fontSize: 15 }}>What's exploding across every platform right now</p>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-              {trendingData.map((item, i) => (
-                <div key={i} onClick={() => { setKeyword(item.keyword); setActiveNav('search'); handleSearch(); }}
-                  className="result-card" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '20px', cursor: 'pointer', transition: 'all 0.2s', animation: `fadeUp 0.4s ease ${i * 60}ms both` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                    <div>
-                      <div style={{ fontSize: 13, color: C.textSub, marginBottom: 4 }}>#{i + 1} Trending</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{item.keyword}</div>
-                    </div>
-                    <div style={{ background: 'rgba(91,184,138,0.15)', border: '1px solid rgba(91,184,138,0.3)', borderRadius: 8, padding: '4px 10px', fontSize: 13, fontWeight: 600, color: C.success }}>{item.growth}</div>
-                  </div>
-                  <div style={{ fontSize: 13, color: C.textSub, marginBottom: 12 }}>"{item.hook}"</div>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {[item.platform, `${item.views} views`, `VYRA Score ${item.score}`].map((tag, ti) => (
-                      <span key={ti} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 100, background: C.surfaceAlt, color: C.textSub }}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+        {activeNav !== 'search' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 40, opacity: 0.2 }}>◎</div>
+            <div style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 18, fontWeight: 800, color: 'rgba(255,255,255,0.15)', letterSpacing: '-0.01em' }}>Coming soon</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.1)' }}>Focus on Search for now</div>
           </div>
         )}
 
-        {/* ── SAVED TAB ── */}
-        {activeNav === 'saved' && (
-          <div style={{ padding: '32px' }}>
-            <div style={{ marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', fontFamily: "'Cabinet Grotesk', 'Satoshi', sans-serif", marginBottom: 6 }}>Saved Content 🔖</h1>
-              <p style={{ color: C.textSub, fontSize: 15 }}>{savedPosts.length} saved post{savedPosts.length !== 1 ? 's' : ''}</p>
-            </div>
-            {savedPosts.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🔖</div>
-                <h3 style={{ fontSize: 20, fontWeight: 600, color: C.text, marginBottom: 8 }}>No saved posts yet</h3>
-                <p style={{ color: C.textSub }}>Search for viral content and click the bookmark icon to save posts here.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {savedPosts.map((post, i) => (
-                  <div key={i} onClick={() => { setActiveNav('search'); analyzePost(post); }}
-                    className="result-card" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                      <div style={{ fontSize: 28 }}>{post.thumbnail}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, color: C.violet, fontWeight: 600, marginBottom: 4 }}>{post.platform} · {post.type}</div>
-                        <p style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{post.hook}</p>
-                        <div style={{ fontSize: 12, color: C.textSub, marginTop: 4 }}>{post.views} views · VYRA Score {post.score}</div>
-                      </div>
-                      <button onClick={e => { e.stopPropagation(); setSavedPosts(prev => prev.filter(p => p.id !== post.id)); }}
-                        style={{ background: 'transparent', border: 'none', color: C.textSub, cursor: 'pointer', fontSize: 16 }}>×</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── COMPETITORS TAB ── */}
-        {activeNav === 'competitors' && (
-          <div style={{ padding: '32px' }}>
-            <div style={{ marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', fontFamily: "'Cabinet Grotesk', 'Satoshi', sans-serif", marginBottom: 6 }}>Spy Mode 🕵️</h1>
-              <p style={{ color: C.textSub, fontSize: 15 }}>Track competitor accounts and get alerted when they go viral</p>
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
-              <input value={competitorHandle} onChange={e => setCompetitorHandle(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addCompetitor()}
-                placeholder="@username or account handle..."
-                style={{ flex: 1, padding: '12px 16px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 15, fontFamily: "'Satoshi', 'DM Sans', sans-serif" }} />
-              <button onClick={addCompetitor}
-                style={{ padding: '12px 24px', background: '#F5A623', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
-                + Track Account
-              </button>
-            </div>
-            {competitors.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🕵️</div>
-                <h3 style={{ fontSize: 20, fontWeight: 600, color: C.text, marginBottom: 8 }}>No competitors tracked yet</h3>
-                <p style={{ color: C.textSub }}>Add competitor accounts above to start monitoring their viral content.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {competitors.map((handle, i) => (
-                  <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #0D0D0D, #F5A623)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700 }}>
-                        {handle[0]?.toUpperCase() || '?'}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{handle}</div>
-                        <div style={{ fontSize: 12, color: C.success, marginTop: 2 }}>● Monitoring active</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button onClick={() => { setKeyword(handle); setActiveNav('search'); handleSearch(); }}
-                        style={{ padding: '7px 16px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 8, color: C.violet, fontSize: 13, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
-                        View Posts
-                      </button>
-                      <button onClick={() => setCompetitors(prev => prev.filter(c => c !== handle))}
-                        style={{ padding: '7px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textSub, fontSize: 13, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>×</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── PATTERN LIBRARY ── */}
-        {activeNav === 'patterns' && (
-          <div style={{ padding: '32px' }}>
-            <div style={{ marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', fontFamily: "'Cabinet Grotesk', 'Satoshi', sans-serif", marginBottom: 6 }}>Viral Pattern Library 📚</h1>
-              <p style={{ color: C.textSub, fontSize: 15 }}>Proven content formats with real performance data</p>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-              {VIRAL_PATTERNS.map((pattern, i) => (
-                <div key={i} className="result-card" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '24px', transition: 'all 0.2s', cursor: 'pointer', animation: `fadeUp 0.4s ease ${i * 60}ms both` }}
-                  onClick={() => { setActiveNav('search'); setKeyword(pattern.name); }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, letterSpacing: '-0.3px' }}>{pattern.name}</h3>
-                    <div style={{ background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 8, padding: '3px 10px', fontSize: 12, fontWeight: 700, color: C.violet }}>{pattern.avgScore}</div>
-                  </div>
-                  <p style={{ fontSize: 13, color: C.textSub, marginBottom: 14, lineHeight: 1.65 }}>{pattern.desc}</p>
-                  <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', fontSize: 13, color: C.text, fontStyle: 'italic', marginBottom: 14 }}>
-                    {pattern.example}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {pattern.platforms.map(p => (
-                      <span key={p} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 100, background: C.surfaceAlt, color: C.textSub }}>{p}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── CALENDAR TAB ── */}
-        {activeNav === 'calendar' && (
-          <div style={{ padding: '32px' }}>
-            <div style={{ marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', fontFamily: "'Cabinet Grotesk', 'Satoshi', sans-serif", marginBottom: 6 }}>Content Calendar 📅</h1>
-              <p style={{ color: C.textSub, fontSize: 15 }}>Generated content queued and ready to post</p>
-            </div>
-            {calendarItems.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
-                <h3 style={{ fontSize: 20, fontWeight: 600, color: C.text, marginBottom: 8 }}>Your calendar is empty</h3>
-                <p style={{ color: C.textSub, marginBottom: 24 }}>Generate content in the Search tab and it'll appear here automatically.</p>
-                <button onClick={() => setActiveNav('search')}
-                  style={{ padding: '12px 24px', background: '#F5A623', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
-                  Start Searching →
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {calendarItems.map((item, i) => (
-                  <div key={item.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '20px 24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                      <div>
-                        <div style={{ fontSize: 11, color: C.violet, fontWeight: 600, marginBottom: 4 }}>{item.platform} · {item.date}</div>
-                        <h3 style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{item.title}</h3>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 100, background: 'rgba(91,184,138,0.15)', color: C.success, border: '1px solid rgba(91,184,138,0.3)' }}>Draft</span>
-                        <button onClick={() => setCalendarItems(prev => prev.filter(it => it.id !== item.id))}
-                          style={{ background: 'transparent', border: 'none', color: C.textSub, cursor: 'pointer', fontSize: 16 }}>×</button>
-                      </div>
-                    </div>
-                    <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 16px', fontSize: 13, color: C.textSub, lineHeight: 1.7, maxHeight: 120, overflow: 'hidden', position: 'relative' }}>
-                      {item.script?.slice(0, 200)}...
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      <button onClick={() => navigator.clipboard.writeText(item.script)}
-                        style={{ padding: '7px 16px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 8, color: C.violet, fontSize: 13, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
-                        Copy Script
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── PREDICTOR TAB ── */}
-        {activeNav === 'predictor' && (
-          <div style={{ padding: '32px', maxWidth: 800 }}>
-            <div style={{ marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', fontFamily: "'Cabinet Grotesk', 'Satoshi', sans-serif", marginBottom: 6 }}>Performance Predictor ⚡</h1>
-              <p style={{ color: C.textSub, fontSize: 15 }}>Paste your draft — get your VYRA Score before you post</p>
-            </div>
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '28px' }}>
-              <label style={{ fontSize: 12, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 10 }}>Your Draft Content</label>
-              <textarea value={predictorText} onChange={e => setPredictorText(e.target.value)} rows={8}
-                placeholder="Paste your caption, script, hook, or post draft here..."
-                style={{ width: '100%', padding: '14px 16px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, fontFamily: "'Satoshi', 'DM Sans', sans-serif", resize: 'vertical', lineHeight: 1.7 }} />
-              <button onClick={predictPerformance} disabled={predicting || !predictorText.trim()}
-                style={{ marginTop: 16, width: '100%', padding: '13px', background: '#F5A623', border: 'none', borderRadius: 10, color: 'white', fontSize: 15, fontWeight: 600, cursor: predicting || !predictorText.trim() ? 'not-allowed' : 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", opacity: predicting || !predictorText.trim() ? 0.7 : 1 }}>
-                {predicting ? '⟳ Analyzing...' : '⚡ Predict Performance'}
-              </button>
-            </div>
-            {predicting && (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.border}`, borderTop: `3px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-                <p style={{ color: C.textSub }}>Scoring your content against our viral database...</p>
-              </div>
-            )}
-            {prediction && (
-              <div style={{ marginTop: 20, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '28px', animation: 'fadeUp 0.3s ease' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 600, color: C.text }}>Prediction Report</h3>
-                  <button onClick={() => navigator.clipboard.writeText(prediction)}
-                    style={{ padding: '6px 14px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 7, color: C.violet, fontSize: 12, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>Copy</button>
-                </div>
-                <div style={{ fontSize: 14, color: C.textSub, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>{prediction}</div>
-              </div>
-            )}
-          </div>
-        )}
       </main>
     </div>
   );
