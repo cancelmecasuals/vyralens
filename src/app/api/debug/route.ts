@@ -6,30 +6,56 @@ export async function GET(req: NextRequest) {
   const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
   const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  const endpoints = [
-    `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/hashtag_section?tag=${tag}&section=top`,
-    `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/hashtag_posts?tag=${tag}`,
-    `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/hashtag?tag=${tag}`,
-    `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/explore?tag=${tag}`,
-  ];
+  const url = `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/hashtag_section?tag=${encodeURIComponent(tag)}&section=top`;
+  const res = await fetch(url, {
+    headers: {
+      'x-rapidapi-key': rapidKey || '',
+      'x-rapidapi-host': 'instagram-api-fast-reliable-data-scraper.p.rapidapi.com',
+    },
+    signal: AbortSignal.timeout(15000),
+  });
 
-  const results: any = {};
-  for (const url of endpoints) {
-    const endpoint = url.split('.com/')[1].split('?')[0];
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'x-rapidapi-key': rapidKey || '',
-          'x-rapidapi-host': 'instagram-api-fast-reliable-data-scraper.p.rapidapi.com',
-        },
-        signal: AbortSignal.timeout(8000),
-      });
-      const text = await res.text();
-      results[endpoint] = { status: res.status, sample: text.slice(0, 200) };
-    } catch (e: any) {
-      results[endpoint] = { error: e.message };
+  const data = await res.json();
+  const sections = data?.data?.sections || [];
+
+  // Deep inspect all sections
+  const sectionInfo = sections.map((s: any, i: number) => ({
+    index: i,
+    layout_type: s.layout_type,
+    feed_type: s.feed_type,
+    mediasIsNull: s.layout_content?.medias === null,
+    mediasLength: s.layout_content?.medias?.length || 0,
+    firstMediaKeys: s.layout_content?.medias?.[0] ? Object.keys(s.layout_content.medias[0]) : [],
+    firstMediaId: s.layout_content?.medias?.[0]?.media?.id || s.layout_content?.medias?.[0]?.id || null,
+    firstMediaLikes: s.layout_content?.medias?.[0]?.media?.like_count || null,
+  }));
+
+  // Try to extract any media
+  const allMedias: any[] = [];
+  for (const s of sections) {
+    const medias = s?.layout_content?.medias || [];
+    for (const m of medias) {
+      const media = m?.media || m;
+      if (media && typeof media === 'object' && (media.id || media.like_count)) {
+        allMedias.push({
+          id: media.id,
+          like_count: media.like_count,
+          comment_count: media.comment_count,
+          media_type: media.media_type,
+          caption: media.caption?.text?.slice(0, 60),
+          has_video_url: !!media.video_url,
+          username: media.user?.username,
+        });
+      }
     }
   }
 
-  return NextResponse.json(results);
+  return NextResponse.json({
+    status: res.status,
+    totalSections: sections.length,
+    sectionInfo,
+    totalMediasExtracted: allMedias.length,
+    medias: allMedias.slice(0, 3),
+    rawDataKeys: Object.keys(data?.data || {}),
+  });
 }
