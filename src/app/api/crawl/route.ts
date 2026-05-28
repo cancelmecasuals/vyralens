@@ -20,9 +20,10 @@ export async function GET(req: NextRequest) {
           'Authorization': `Bearer ${bdToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify([{
-          url: `https://www.instagram.com/explore/tags/${tag}/`,
-        }]),
+        body: JSON.stringify([
+          { url: `https://www.instagram.com/explore/tags/${tag}/` },
+          { url: `https://www.instagram.com/explore/tags/${tag}` },
+        ]),
         signal: AbortSignal.timeout(30000),
       }
     );
