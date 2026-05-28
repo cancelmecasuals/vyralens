@@ -2,38 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const apifyKey = process.env.APIFY_API_KEY?.trim();
-  const username = req.nextUrl.searchParams.get('username') || 'gabybernstein';
+  const scKey = process.env.SCRAPECREATORS_API_KEY?.trim();
+  const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
+  const platform = req.nextUrl.searchParams.get('platform') || 'tiktok';
 
-  // Test multiple Apify actors for username-based post fetching
-  const actors = [
-    { id: 'apify~instagram-scraper', input: { usernames: [username], resultsType: 'posts', resultsLimit: 5 } },
-    { id: 'apify~instagram-profile-scraper', input: { usernames: [username] } },
-    { id: 'apify~instagram-post-scraper', input: { directUrls: [`https://www.instagram.com/${username}/`], resultsLimit: 5 } },
-  ];
+  if (!scKey) return NextResponse.json({ error: 'No ScrapeCreators key', hasKey: false });
 
-  const results: any = {};
-  for (const actor of actors) {
-    try {
-      const url = `https://api.apify.com/v2/acts/${actor.id}/run-sync-get-dataset-items?token=${apifyKey}&timeout=55&memory=512&maxItems=5`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(actor.input),
-        signal: AbortSignal.timeout(60000),
-      });
-      const text = await res.text();
-      let data: any;
-      try { data = JSON.parse(text); } catch { data = text.slice(0, 300); }
-      results[actor.id] = {
-        status: res.status,
-        count: Array.isArray(data) ? data.length : 0,
-        sample: Array.isArray(data) ? (data[0] ? { keys: Object.keys(data[0]).slice(0, 8), likesCount: data[0].likesCount, type: data[0].type, error: data[0].error } : 'empty array') : data,
-      };
-    } catch (e: any) {
-      results[actor.id] = { error: e.message };
-    }
+  const urls: Record<string, string> = {
+    tiktok: `https://api.scrapecreators.com/v1/tiktok/search/top?query=${encodeURIComponent(keyword)}&sort_by=most-liked&publish_time=all-time`,
+    x: `https://api.scrapecreators.com/v1/twitter/search?query=${encodeURIComponent(keyword)}&type=Top`,
+    reddit: `https://api.scrapecreators.com/v1/reddit/subreddit/search?subreddit=all&query=${encodeURIComponent(keyword)}&sort=top&time=all`,
+  };
+
+  const url = urls[platform];
+  if (!url) return NextResponse.json({ error: 'Unknown platform' });
+
+  try {
+    const res = await fetch(url, {
+      headers: { 'x-api-key': scKey },
+      signal: AbortSignal.timeout(15000),
+    });
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = text.slice(0, 500); }
+
+    return NextResponse.json({
+      platform, status: res.status,
+      hasKey: true,
+      keyLength: scKey.length,
+      topLevelKeys: typeof data === 'object' ? Object.keys(data || {}) : [],
+      itemCount: data?.items?.length || data?.tweets?.length || data?.posts?.length || data?.data?.length || 0,
+      sample: typeof data === 'object' ? JSON.stringify(data).slice(0, 600) : data,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message, platform });
   }
-
-  return NextResponse.json(results);
 }
