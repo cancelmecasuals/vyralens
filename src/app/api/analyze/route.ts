@@ -9,11 +9,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing API key' }, { status: 500 });
     }
 
+    // Strip all non-ASCII characters that break HTTP headers
+    const apiKey = process.env.ANTHROPIC_API_KEY.replace(/[^\x00-\x7F]/g, '').trim();
+
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
