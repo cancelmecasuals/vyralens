@@ -5,8 +5,6 @@ export async function GET(req: NextRequest) {
   const sessionId = process.env.INSTAGRAM_SESSION_ID?.trim();
   const csrfToken = process.env.INSTAGRAM_CSRF_TOKEN?.trim();
   const dsUserId = process.env.INSTAGRAM_DS_USER_ID?.trim();
-  const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
-  const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
   const headers: Record<string, string> = {
     'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
@@ -14,47 +12,41 @@ export async function GET(req: NextRequest) {
     'X-IG-App-ID': '936619743392459',
     'X-Requested-With': 'XMLHttpRequest',
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
+    'Referer': 'https://www.instagram.com/',
   };
 
-  const url = `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${tag}`;
-  const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
-  const data = await res.json();
+  const username = req.nextUrl.searchParams.get('username') || 'gabybernstein';
+  const results: any = {};
 
-  const topSections = data?.data?.top?.sections || [];
-  const medias: any[] = [];
-  for (const section of topSections) {
-    for (const m of (section?.layout_content?.medias || [])) {
-      const media = m?.media || m;
-      if (media?.id) medias.push(media);
+  // Test profile fetch
+  try {
+    const res1 = await fetch(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`, { headers, signal: AbortSignal.timeout(10000) });
+    const data1 = await res1.json();
+    results.profile = {
+      status: res1.status,
+      userId: data1?.data?.user?.id,
+      username: data1?.data?.user?.username,
+      followers: data1?.data?.user?.edge_followed_by?.count,
+      keys: Object.keys(data1?.data?.user || {}).slice(0, 10),
+    };
+
+    const userId = data1?.data?.user?.id;
+    if (userId) {
+      // Test feed fetch
+      const res2 = await fetch(`https://www.instagram.com/api/v1/feed/user/${userId}/?count=12`, { headers, signal: AbortSignal.timeout(10000) });
+      const data2 = await res2.json();
+      const items = data2?.items || [];
+      results.feed = {
+        status: res2.status,
+        itemCount: items.length,
+        topLikes: items.reduce((max: number, i: any) => Math.max(max, i.like_count || 0), 0),
+        top3: items.slice(0, 3).map((i: any) => ({ likes: i.like_count, type: i.media_type, code: i.code })),
+        keys: Object.keys(data2 || {}).slice(0, 8),
+      };
     }
+  } catch (e: any) {
+    results.error = e.message;
   }
 
-  // Show ALL keys of first media object so we know exact field names
-  const firstMedia = medias[0];
-  const sorted = medias.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
-
-  return NextResponse.json({
-    status: res.status,
-    totalMedias: medias.length,
-    firstMediaAllKeys: firstMedia ? Object.keys(firstMedia) : [],
-    firstMediaRaw: firstMedia ? {
-      id: firstMedia.id,
-      code: firstMedia.code,
-      pk: firstMedia.pk,
-      shortcode: firstMedia.shortcode,
-      media_type: firstMedia.media_type,
-      like_count: firstMedia.like_count,
-      username: firstMedia.user?.username,
-      taken_at: firstMedia.taken_at,
-    } : null,
-    top3ByLikes: sorted.slice(0, 3).map((m: any) => ({
-      likes: m.like_count,
-      username: m.user?.username,
-      code: m.code,
-      pk: m.pk,
-      id: m.id,
-      media_type: m.media_type,
-    })),
-  });
+  return NextResponse.json(results);
 }
