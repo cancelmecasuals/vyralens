@@ -12,12 +12,17 @@ async function searchYouTube(keyword: string) {
   if (!apiKey) return [];
   try {
     const searchRes = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&order=viewCount&maxResults=6&key=${apiKey}`
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&order=viewCount&maxResults=12&relevanceLanguage=en&key=${apiKey}`
     );
     const searchData = await searchRes.json();
-    if (!searchData.items?.length) return [];
+    if (!searchData.items?.length) {
+      console.error('YouTube no items:', JSON.stringify(searchData));
+      return [];
+    }
 
-    const ids = searchData.items.map((i: any) => i.id.videoId).join(',');
+    const ids = searchData.items.map((i: any) => i.id.videoId).filter(Boolean).join(',');
+    if (!ids) return [];
+
     const statsRes = await fetch(
       `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ids}&key=${apiKey}`
     );
@@ -25,44 +30,59 @@ async function searchYouTube(keyword: string) {
     const statsMap: Record<string, any> = {};
     statsData.items?.forEach((item: any) => { statsMap[item.id] = item.statistics; });
 
-    return searchData.items.map((item: any) => {
-      const stats = statsMap[item.id.videoId] || {};
-      const views = parseInt(stats.viewCount || '0');
-      const likes = parseInt(stats.likeCount || '0');
-      const comments = parseInt(stats.commentCount || '0');
-      const engagementRate = views > 0 ? ((likes + comments) / views * 100).toFixed(1) : '0';
-      const vyraScore = Math.min(99, Math.max(65, Math.round(Math.log10(views + 1) * 15 + parseFloat(engagementRate) * 5)));
-      return {
-        id: item.id.videoId, platform: 'YouTube',
-        hook: item.snippet.title,
-        description: item.snippet.description?.slice(0, 300) || '',
-        accountName: `@${item.snippet.channelTitle}`,
-        accountFollowers: '',
-        thumbnail: item.snippet.thumbnails?.medium?.url || '',
-        thumbnailEmoji: '▶️',
-        views: formatNum(views), likes: formatNum(likes),
-        comments: formatNum(comments), shares: formatNum(Math.round(likes * 0.3)),
-        score: vyraScore,
-        postedTime: new Date(item.snippet.publishedAt).toLocaleDateString(),
-        type: 'YouTube Video',
-        videoId: item.id.videoId,
-        videoUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-        mediaType: 'video', rawViews: views, engagementRate,
-      };
-    }).sort((a: any, b: any) => b.rawViews - a.rawViews);
+    return searchData.items
+      .filter((item: any) => item.id?.videoId)
+      .map((item: any) => {
+        const stats = statsMap[item.id.videoId] || {};
+        const views = parseInt(stats.viewCount || '0');
+        const likes = parseInt(stats.likeCount || '0');
+        const comments = parseInt(stats.commentCount || '0');
+        const engagementRate = views > 0 ? ((likes + comments) / views * 100).toFixed(1) : '0';
+        const vyraScore = Math.min(99, Math.max(65, Math.round(Math.log10(views + 1) * 15 + parseFloat(engagementRate) * 5)));
+        return {
+          id: item.id.videoId, platform: 'YouTube',
+          hook: item.snippet.title,
+          description: item.snippet.description?.slice(0, 300) || '',
+          accountName: `@${item.snippet.channelTitle}`,
+          accountFollowers: '',
+          thumbnail: item.snippet.thumbnails?.medium?.url || '',
+          thumbnailEmoji: '▶️',
+          views: formatNum(views), likes: formatNum(likes),
+          comments: formatNum(comments), shares: formatNum(Math.round(likes * 0.3)),
+          score: vyraScore,
+          postedTime: new Date(item.snippet.publishedAt).toLocaleDateString(),
+          type: 'YouTube Video',
+          videoId: item.id.videoId,
+          videoUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+          mediaType: 'video', rawViews: views, engagementRate,
+        };
+      })
+      .sort((a: any, b: any) => b.rawViews - a.rawViews);
   } catch (err) { console.error('YouTube error:', err); return []; }
 }
 
 async function searchReddit(keyword: string) {
   try {
     const res = await fetch(
-      `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=top&t=month&limit=6`,
-      { headers: { 'User-Agent': 'VyraLens/1.0' } }
+      `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=top&t=month&limit=10&include_over_18=false`,
+      {
+        headers: {
+          'User-Agent': 'VyraLens:v1.0 (by /u/vyralens)',
+          'Accept': 'application/json',
+        },
+      }
     );
+    if (!res.ok) {
+      console.error('Reddit HTTP error:', res.status);
+      return [];
+    }
     const data = await res.json();
-    if (!data.data?.children) return [];
+    if (!data.data?.children?.length) {
+      console.error('Reddit no children:', JSON.stringify(data).slice(0, 200));
+      return [];
+    }
     return data.data.children
-      .filter((p: any) => p.data.score > 50)
+      .filter((p: any) => p.data.score > 10)
       .map((post: any) => {
         const p = post.data;
         const vyraScore = Math.min(99, Math.max(65, Math.round(Math.log10(p.score + 1) * 18)));

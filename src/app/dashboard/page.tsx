@@ -525,7 +525,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                           {analyzing && (
                             <div style={{ textAlign: 'center', padding: '30px 0' }}>
                               <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${C.border}`, borderTop: `2px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                              <p style={{ color: C.textSub, fontSize: 13 }}>Analyzing viral patterns...</p>
+                              <p style={{ color: C.textSub, fontSize: 13 }}>{analysis || 'Analyzing...'}</p>
                             </div>
                           )}
                           {!analyzing && !analysis && (
