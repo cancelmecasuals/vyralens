@@ -8,41 +8,47 @@ export async function GET(req: NextRequest) {
   const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
   const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  try {
-    const url = `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=512&maxItems=5`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        hashtags: [hashtag],
-        resultsType: 'posts',
-        resultsLimit: 5,
-      }),
-      signal: AbortSignal.timeout(95000),
-    });
+  const tests = [
+    {
+      name: 'instagram-scraper-posts',
+      actor: 'apify~instagram-scraper',
+      input: { hashtags: [hashtag], resultsType: 'posts', resultsLimit: 3 },
+    },
+    {
+      name: 'instagram-scraper-reels',
+      actor: 'apify~instagram-scraper',
+      input: { hashtags: [hashtag], resultsType: 'reels', resultsLimit: 3 },
+    },
+    {
+      name: 'instagram-hashtag-scraper',
+      actor: 'apify~instagram-hashtag-scraper',
+      input: { hashtags: [hashtag], resultsLimit: 3 },
+    },
+  ];
 
-    const status = res.status;
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch { data = text; }
+  const results: any = {};
 
-    return NextResponse.json({
-      status,
-      itemCount: Array.isArray(data) ? data.length : 0,
-      fields: Array.isArray(data) && data[0] ? Object.keys(data[0]) : [],
-      sample: Array.isArray(data) ? data.slice(0, 2).map((item: any) => ({
-        type: item.type,
-        likesCount: item.likesCount,
-        videoViewCount: item.videoViewCount,
-        commentsCount: item.commentsCount,
-        ownerUsername: item.ownerUsername,
-        caption: item.caption?.slice(0, 100),
-        hasVideoUrl: !!item.videoUrl,
-        hasDisplayUrl: !!item.displayUrl,
-        timestamp: item.timestamp,
-      })) : data,
-    });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message });
+  for (const test of tests) {
+    try {
+      const url = `https://api.apify.com/v2/acts/${test.actor}/run-sync-get-dataset-items?token=${apifyKey}&timeout=60&memory=512&maxItems=3`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(test.input),
+        signal: AbortSignal.timeout(65000),
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = text; }
+      results[test.name] = {
+        status: res.status,
+        itemCount: Array.isArray(data) ? data.length : 0,
+        raw: Array.isArray(data) ? data[0] : data,
+      };
+    } catch (err: any) {
+      results[test.name] = { error: err.message };
+    }
   }
+
+  return NextResponse.json(results);
 }
