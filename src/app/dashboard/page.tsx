@@ -79,6 +79,10 @@ export default function Dashboard() {
   const [activePlatform, setActivePlatform] = useState('all');
   const [results, setResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [redditAfter, setRedditAfter] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [analysis, setAnalysis] = useState('');
   const [activeTab, setActiveTab] = useState('analysis');
@@ -121,6 +125,9 @@ export default function Dashboard() {
     setSelectedPost(null);
     setAnalysis('');
     setGeneratedScript('');
+    setNextPageToken(null);
+    setRedditAfter(null);
+    setHasMore(false);
     try {
       const res = await fetch('/api/search', {
         method: 'POST',
@@ -128,16 +135,32 @@ export default function Dashboard() {
         body: JSON.stringify({ keyword, platform: activePlatform }),
       });
       const data = await res.json();
-      if (data.results?.length > 0) {
-        setResults(data.results);
-      } else {
-        // Fallback to mock if no real results
-        setResults(generateMockResults(keyword, activePlatform));
-      }
+      setResults(data.results || []);
+      setNextPageToken(data.nextPageToken || null);
+      setRedditAfter(data.redditAfter || null);
+      setHasMore(!!(data.nextPageToken || data.redditAfter));
     } catch {
       setResults(generateMockResults(keyword, activePlatform));
     }
     setSearching(false);
+  };
+
+  const loadMore = async () => {
+    if (loadingMore || !keyword.trim()) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword, platform: activePlatform, pageToken: nextPageToken, redditAfter }),
+      });
+      const data = await res.json();
+      setResults(prev => [...prev, ...(data.results || [])]);
+      setNextPageToken(data.nextPageToken || null);
+      setRedditAfter(data.redditAfter || null);
+      setHasMore(!!(data.nextPageToken || data.redditAfter));
+    } catch { }
+    setLoadingMore(false);
   };
 
   const analyzePost = async (post: any) => {
@@ -436,7 +459,13 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                   </div>
                 )}
                 {results.map((post, i) => (
-                  <div key={post.id} className="result-card" onClick={() => analyzePost(post)}
+                  <div key={post.id} className="result-card" onClick={() => {
+                    setSelectedPost(post);
+                    setAnalysis('');
+                    setGeneratedScript('');
+                    setActiveTab('analysis');
+                    setTranscribeStatus('');
+                  }}
                     style={{ background: C.surface, border: `1px solid ${selectedPost?.id === post.id ? C.violet : C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', transition: 'all 0.2s', animation: `fadeUp 0.4s ease ${i * 60}ms both` }}>
                     <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                       {/* Thumbnail */}
@@ -480,6 +509,16 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                     </div>
                   </div>
                 ))}
+
+                {/* Load More */}
+                {results.length > 0 && (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <button onClick={loadMore} disabled={loadingMore}
+                      style={{ padding: '12px 32px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 10, color: loadingMore ? C.textDim : C.textSub, fontSize: 14, fontWeight: 500, cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}>
+                      {loadingMore ? '⟳ Loading more...' : '↓ Load More Results'}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Analysis Panel */}
@@ -533,11 +572,17 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                               <p style={{ color: C.violet, fontSize: 13, fontWeight: 500 }}>{transcribeStatus || 'Analyzing...'}</p>
                             </div>
                           )}
-                          {!analyzing && !analysis && (
-                            <div style={{ textAlign: 'center', padding: '30px 0', color: C.textSub, fontSize: 13 }}>
-                              Click a post on the left to get the AI viral analysis
-                            </div>
-                          )}
+                      {!analyzing && !analysis && !transcribeStatus && (
+                        <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                          <p style={{ color: C.textSub, fontSize: 13, marginBottom: 16 }}>
+                            Ready to analyze this post
+                          </p>
+                          <button onClick={() => analyzePost(selectedPost)}
+                            style={{ padding: '12px 28px', background: `linear-gradient(135deg, ${C.violet}, ${C.violetLight})`, border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                            🧠 Start Analysis
+                          </button>
+                        </div>
+                      )}
                           {analysis && (
                             <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{analysis}</div>
                           )}
