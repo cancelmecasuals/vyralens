@@ -108,7 +108,7 @@ const FAQS = [
   { q: 'What platforms are supported?', a: 'TikTok, Instagram, YouTube, Reddit, and X (Twitter). All five in one search. More platforms coming soon.' },
   { q: 'How does the AI know what makes content go viral?', a: 'VyraLens analyzes engagement velocity, hook structure, posting time, share-to-view ratio, comment sentiment, and hundreds of other signals — then Claude AI synthesizes it into a plain-English breakdown you can actually use.' },
   { q: 'Can I cancel anytime?', a: 'Yes. No contracts, no tricks. Cancel from your account dashboard in one click. You keep access until the end of your billing period.' },
-  { q: 'Is there a free trial?', a: 'We offer a 7-day free trial on all plans. No credit card required to start.' },
+  { q: 'Is there a money-back guarantee?', a: 'Yes — all plans come with a 30-day money-back guarantee. If you\'re not happy for any reason, we\'ll refund you in full. No questions asked.' },
 ];
 
 export default function LandingPage() {
@@ -185,7 +185,7 @@ export default function LandingPage() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <Link href="/login"><button className="btn-outline" style={{ padding: '8px 20px', fontSize: 14 }}>Log In</button></Link>
-          <Link href="/signup"><button className="btn-primary" style={{ padding: '8px 20px', fontSize: 14 }}>Start Free Trial</button></Link>
+          <Link href="/signup"><button className="btn-primary" style={{ padding: '8px 20px', fontSize: 14 }}>Get Started</button></Link>
         </div>
       </nav>
 
@@ -219,7 +219,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
             <Link href="/signup">
               <button className="btn-primary" style={{ fontSize: 16, padding: '16px 40px', animation: 'glow 3s infinite' }}>
-                Start Free Trial — No Card Needed
+                Get Started — 30-Day Guarantee
               </button>
             </Link>
             <a href="#features">
@@ -352,7 +352,7 @@ export default function LandingPage() {
             <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 700, letterSpacing: '-1px', color: C.text, marginBottom: 12 }}>
               Start free. Scale when you grow.
             </h2>
-            <p style={{ color: C.textSub, fontSize: 17 }}>7-day free trial on every plan. No credit card required.</p>
+            <p style={{ color: C.textSub, fontSize: 17 }}>30-day money-back guarantee on all plans. Cancel anytime.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
             {PRICING.map((p, i) => (
@@ -437,10 +437,10 @@ export default function LandingPage() {
             <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email"
               style={{ padding: '13px 20px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "'DM Sans', sans-serif", width: 280, outline: 'none' }} />
             <Link href={`/signup${email ? `?email=${encodeURIComponent(email)}` : ''}`}>
-              <button className="btn-primary" style={{ fontSize: 15, padding: '13px 28px' }}>Start Free Trial →</button>
+              <button className="btn-primary" style={{ fontSize: 15, padding: '13px 28px' }}>Get Started →</button>
             </Link>
           </div>
-          <p style={{ color: C.textDim, fontSize: 12, marginTop: 16 }}>7-day free trial · No credit card · Cancel anytime</p>
+          <p style={{ color: C.textDim, fontSize: 12, marginTop: 16 }}>30-day money-back guarantee · Cancel anytime · Cancel anytime</p>
         </div>
       </section>
 

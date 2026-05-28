@@ -374,54 +374,135 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
     }
   };
 
-  if (!user) return (
+  if (!user || checkingSub) return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.border}`, borderTop: `3px solid ${C.violet}`, animation: 'spin 0.8s linear infinite' }} />
+      <style dangerouslySetInnerHTML={{__html:`@keyframes spin { to { transform: rotate(360deg); } }`}}/>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.border}`, borderTop: `3px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+        <p style={{ color: C.textSub, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>Loading VyraLens...</p>
+      </div>
     </div>
   );
 
-  // Paywall — show upgrade screen if no active subscription
-  if (!checkingSub && !subscription) {
+  // Paywall
+  if (!subscription) {
+    const plans = [
+      { id: 'creator', name: 'Creator', price: 39, desc: 'Solo creators getting serious', features: ['All 4 platforms', '50 searches/month', 'AI hook analysis', 'Script generator', 'Save 50 posts'], highlight: false },
+      { id: 'pro', name: 'Pro', price: 99, desc: 'For creators who want to dominate', features: ['Unlimited searches', 'Trending Now feed', 'Competitor tracker', 'Content calendar', 'Performance predictor', 'Voice matching'], highlight: true },
+      { id: 'agency', name: 'Agency', price: 199, desc: 'Teams and agencies', features: ['Everything in Pro', '5 team seats', 'White-label scripts', 'API access', 'Priority support'], highlight: false },
+    ];
+
+    const handlePlanClick = async (planId: string) => {
+      try {
+        const res = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planId, userId: user.id, userEmail: user.email }),
+        });
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+        else alert('Something went wrong — please try again.');
+      } catch (e) {
+        alert('Something went wrong — please try again.');
+      }
+    };
+
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif", padding: 24 }}>
-        <style dangerouslySetInnerHTML={{__html:`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}}/>
-        <div style={{ maxWidth: 540, width: '100%', textAlign: 'center' }}>
-          <div style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg, #1A1A2E, #6C63FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: 'white', margin: '0 auto 24px' }}>V</div>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', marginBottom: 12 }}>
-            Choose your plan
-          </h1>
-          <p style={{ color: C.textSub, fontSize: 16, marginBottom: 40, lineHeight: 1.65 }}>
-            Get full access to VyraLens — find viral content, decode why it works, and generate your version in seconds.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
-            {[
-              { id: 'creator', name: 'Creator', price: '$39/mo', desc: 'Solo creators', highlight: false },
-              { id: 'pro', name: 'Pro', price: '$99/mo', desc: 'Serious growth — most popular', highlight: true },
-              { id: 'agency', name: 'Agency', price: '$199/mo', desc: 'Teams & agencies', highlight: false },
-            ].map(plan => (
-              <button key={plan.id} onClick={async () => {
-                const res = await fetch('/api/stripe/checkout', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ planId: plan.id, userId: user.id, userEmail: user.email }),
-                });
-                const data = await res.json();
-                if (data.url) window.location.href = data.url;
-              }}
-                style={{ width: '100%', padding: '16px 20px', background: plan.highlight ? 'linear-gradient(135deg, rgba(108,99,255,0.2), rgba(108,99,255,0.08))' : C.surface, border: `1px solid ${plan.highlight ? C.violet : C.border}`, borderRadius: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{plan.name}</div>
+      <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'DM Sans', sans-serif", overflowY: 'auto' }}>
+        <style dangerouslySetInnerHTML={{__html:`
+          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+          .plan-row { transition: all 0.2s; cursor: pointer; }
+          .plan-row:hover { transform: translateY(-2px) !important; border-color: #6C63FF !important; }
+        `}}/>
+
+        {/* Background glow */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse at 50% 30%, rgba(108,99,255,0.1) 0%, transparent 60%)' }} />
+
+        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '60px 24px', position: 'relative' }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 52, animation: 'fadeUp 0.5s ease' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 11, background: 'linear-gradient(135deg, #1A1A2E, #6C63FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: 'white' }}>V</div>
+              <span style={{ fontWeight: 700, fontSize: 22, color: C.text }}>Vyra<span style={{ color: C.violet }}>Lens</span></span>
+            </div>
+            <h1 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 700, color: C.text, letterSpacing: '-1px', marginBottom: 14, lineHeight: 1.1 }}>
+              The world's most powerful<br />viral content platform
+            </h1>
+            <p style={{ color: C.textSub, fontSize: 17, maxWidth: 480, margin: '0 auto', lineHeight: 1.65 }}>
+              One keyword. Every viral post across TikTok, Instagram, YouTube, and X. AI breakdown. Your script ready in seconds.
+            </p>
+          </div>
+
+          {/* Plans */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 32, animation: 'fadeUp 0.6s ease 0.1s both' }}>
+            {plans.map(plan => (
+              <div key={plan.id} className="plan-row"
+                onClick={() => handlePlanClick(plan.id)}
+                style={{
+                  background: plan.highlight
+                    ? 'linear-gradient(135deg, rgba(108,99,255,0.18), rgba(108,99,255,0.06))'
+                    : C.surface,
+                  border: `1px solid ${plan.highlight ? C.violet : C.border}`,
+                  borderRadius: 18, padding: '28px 24px',
+                  position: 'relative',
+                }}>
+                {plan.highlight && (
+                  <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: `linear-gradient(135deg, ${C.violet}, ${C.violetLight})`, color: 'white', fontSize: 10, fontWeight: 700, padding: '4px 14px', borderRadius: 100, whiteSpace: 'nowrap', letterSpacing: '0.1em' }}>
+                    MOST POPULAR
+                  </div>
+                )}
+
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{plan.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
+                    <span style={{ fontSize: 44, fontWeight: 700, color: C.text, letterSpacing: '-2px' }}>${plan.price}</span>
+                    <span style={{ color: C.textSub, fontSize: 14 }}>/month</span>
+                  </div>
                   <div style={{ fontSize: 13, color: C.textSub }}>{plan.desc}</div>
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: plan.highlight ? C.violetLight : C.text }}>{plan.price}</div>
-              </button>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+                  {plan.features.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: C.textSub }}>
+                      <span style={{ color: C.success, fontSize: 12 }}>✓</span> {f}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{
+                  width: '100%', padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+                  background: plan.highlight ? `linear-gradient(135deg, ${C.violet}, ${C.violetLight})` : 'transparent',
+                  border: plan.highlight ? 'none' : `1px solid ${C.border}`,
+                  color: plan.highlight ? 'white' : C.textSub,
+                  textAlign: 'center',
+                }}>
+                  Get {plan.name} →
+                </div>
+              </div>
             ))}
           </div>
-          <p style={{ color: C.textSub, fontSize: 13 }}>30-day money-back guarantee · Cancel anytime</p>
-          <button onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }}
-            style={{ marginTop: 16, background: 'transparent', border: 'none', color: C.textSub, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-            Sign out
-          </button>
+
+          {/* Trust signals */}
+          <div style={{ display: 'flex', gap: 32, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 24, animation: 'fadeUp 0.6s ease 0.2s both' }}>
+            {[
+              { icon: '🔒', text: 'Secure payment via Stripe' },
+              { icon: '↩️', text: '30-day money-back guarantee' },
+              { icon: '❌', text: 'Cancel anytime, no questions' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textSub }}>
+                <span>{item.icon}</span> {item.text}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign: 'center' }}>
+            <button onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }}
+              style={{ background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     );

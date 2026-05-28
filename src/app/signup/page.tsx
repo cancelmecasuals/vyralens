@@ -54,7 +54,7 @@ function SignupForm() {
             </div>
           </Link>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 8, letterSpacing: '-0.5px' }}>Start your free trial</h1>
-          <p style={{ color: C.textSub, fontSize: 15 }}>7 days free · No credit card required</p>
+          <p style={{ color: C.textSub, fontSize: 15 }}>30-day money-back guarantee</p>
         </div>
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: '36px 32px' }}>
           <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -76,7 +76,7 @@ function SignupForm() {
             </button>
           </form>
           <div style={{ marginTop: 20, padding: '14px', background: 'rgba(108,99,255,0.08)', borderRadius: 8, fontSize: 13, color: C.textSub, textAlign: 'center' }}>
-            ✓ 7-day free trial &nbsp;·&nbsp; ✓ Cancel anytime &nbsp;·&nbsp; ✓ No credit card
+            ✓ 30-day money-back guarantee &nbsp;·&nbsp; ✓ Cancel anytime &nbsp;·&nbsp; ✓ Cancel anytime
           </div>
           <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: C.textSub }}>
             Already have an account?{' '}
