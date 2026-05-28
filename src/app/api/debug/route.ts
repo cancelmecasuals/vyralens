@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
     'X-Requested-With': 'XMLHttpRequest',
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
-    'Accept': '*/*',
   };
 
   const url = `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${tag}`;
@@ -31,19 +30,31 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Show ALL keys of first media object so we know exact field names
+  const firstMedia = medias[0];
   const sorted = medias.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
 
   return NextResponse.json({
     status: res.status,
-    totalSections: topSections.length,
     totalMedias: medias.length,
-    maxLikes: sorted[0]?.like_count || 0,
-    top5: sorted.slice(0, 5).map((m: any) => ({
+    firstMediaAllKeys: firstMedia ? Object.keys(firstMedia) : [],
+    firstMediaRaw: firstMedia ? {
+      id: firstMedia.id,
+      code: firstMedia.code,
+      pk: firstMedia.pk,
+      shortcode: firstMedia.shortcode,
+      media_type: firstMedia.media_type,
+      like_count: firstMedia.like_count,
+      username: firstMedia.user?.username,
+      taken_at: firstMedia.taken_at,
+    } : null,
+    top3ByLikes: sorted.slice(0, 3).map((m: any) => ({
       likes: m.like_count,
       username: m.user?.username,
-      shortcode: m.code,
-      type: m.media_type === 2 ? 'video' : 'image',
-      url: m.code ? `https://instagram.com/p/${m.code}/` : null,
+      code: m.code,
+      pk: m.pk,
+      id: m.id,
+      media_type: m.media_type,
     })),
   });
 }
