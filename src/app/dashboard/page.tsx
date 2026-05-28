@@ -5,11 +5,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const C = {
-  bg: '#060612', surface: '#0d0d1f', surfaceAlt: '#13132a',
-  border: '#1e1e3a', borderHi: '#2a2a4a',
-  violet: '#6C63FF', violetLight: '#9d97ff', violetDim: 'rgba(108,99,255,0.15)',
-  navy: '#1A1A2E', gold: '#C9A87C',
-  text: '#EDEAE4', textSub: '#7A7690', textDim: '#2a2a48',
+  bg: '#080808', surface: '#101010', surfaceAlt: '#141414',
+  border: 'rgba(255,255,255,0.08)', borderHi: 'rgba(255,255,255,0.14)',
+  violet: '#F5A623', violetLight: '#FFB73D', violetDim: 'rgba(245,166,35,0.12)',
+  navy: '#0D0D0D', gold: '#F5A623',
+  text: '#FFFFFF', textSub: 'rgba(255,255,255,0.45)', textDim: 'rgba(255,255,255,0.15)',
   success: '#5BB88A', error: '#E05C5C', blue: '#6B9FE4',
 };
 
@@ -382,7 +382,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
       <style dangerouslySetInnerHTML={{__html:`@keyframes spin { to { transform: rotate(360deg); } }`}}/>
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.border}`, borderTop: `3px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-        <p style={{ color: C.textSub, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>Loading VYRA...</p>
+        <p style={{ color: C.textSub, fontSize: 14, fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>Loading VYRA...</p>
       </div>
     </div>
   );
@@ -409,7 +409,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
     };
 
     return (
-      <div style={{ minHeight: '100vh', background: '#080808', fontFamily: "'Satoshi', 'DM Sans', sans-serif", overflowY: 'auto' }}>
+      <div style={{ minHeight: '100vh', background: '#080808', fontFamily: "'Satoshi', 'Satoshi', 'DM Sans', sans-serif", overflowY: 'auto' }}>
         <style dangerouslySetInnerHTML={{__html:`
           @import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=clash-display@700,600&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -475,9 +475,9 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
 
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
       <style dangerouslySetInnerHTML={{__html:`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        @import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=syne@800,700&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
@@ -504,7 +504,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
         <nav style={{ flex: 1, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {NAV_ITEMS.map(item => (
             <button key={item.id} className="nav-item" onClick={() => setActiveNav(item.id)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: activeNav === item.id ? 'rgba(108,99,255,0.15)' : 'transparent', color: activeNav === item.id ? C.violetLight : C.textSub, fontSize: 14, fontWeight: activeNav === item.id ? 600 : 400, fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: activeNav === item.id ? 'rgba(108,99,255,0.15)' : 'transparent', color: activeNav === item.id ? C.violetLight : C.textSub, fontSize: 14, fontWeight: activeNav === item.id ? 600 : 400, fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
               <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
               {sidebarOpen && item.label}
             </button>
@@ -527,13 +527,13 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
               const data = await res.json();
               if (data.url) window.location.href = data.url;
             }} className="nav-item"
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSub, fontSize: 14, fontFamily: "'DM Sans', sans-serif", width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', marginBottom: 4 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSub, fontSize: 14, fontFamily: "'Satoshi', 'DM Sans', sans-serif", width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', marginBottom: 4 }}>
               <span style={{ fontSize: 18, flexShrink: 0 }}>💳</span>
               {sidebarOpen && 'Manage Billing'}
             </button>
           )}
           <button onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }} className="nav-item"
-            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSub, fontSize: 14, fontFamily: "'DM Sans', sans-serif", width: '100%', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSub, fontSize: 14, fontFamily: "'Satoshi', 'DM Sans', sans-serif", width: '100%', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             <span style={{ fontSize: 18, flexShrink: 0 }}>🚪</span>
             {sidebarOpen && 'Sign Out'}
           </button>
@@ -556,9 +556,9 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
               <input value={keyword} onChange={e => setKeyword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 placeholder="Enter any keyword, niche, or topic..."
-                style={{ flex: 1, padding: '14px 18px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 16, fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.2s' }} />
+                style={{ flex: 1, padding: '14px 18px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 16, fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'border-color 0.2s' }} />
               <button onClick={handleSearch} disabled={searching}
-                style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 12, color: 'white', fontSize: 15, fontWeight: 600, cursor: searching ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: searching ? 0.8 : 1, whiteSpace: 'nowrap' }}>
+                style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 12, color: 'white', fontSize: 15, fontWeight: 600, cursor: searching ? 'not-allowed' : 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", opacity: searching ? 0.8 : 1, whiteSpace: 'nowrap' }}>
                 {searching ? '⟳ Searching...' : '🔍 Search'}
               </button>
             </div>
@@ -589,7 +589,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                       }).catch(() => setSearching(false));
                     }
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: `1px solid ${activePlatform === p.id ? C.violet : C.border}`, background: activePlatform === p.id ? C.violetDim : 'transparent', color: activePlatform === p.id ? C.violetLight : C.textSub, fontSize: 13, fontWeight: activePlatform === p.id ? 600 : 400, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: `1px solid ${activePlatform === p.id ? C.violet : C.border}`, background: activePlatform === p.id ? C.violetDim : 'transparent', color: activePlatform === p.id ? C.violetLight : C.textSub, fontSize: 13, fontWeight: activePlatform === p.id ? 600 : 400, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s' }}>
                   {p.icon} {p.label}
                 </button>
               ))}
@@ -621,7 +621,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                     }).catch(() => setSearching(false));
                   }
                 }}
-                  style={{ padding: '5px 12px', borderRadius: 7, border: `1px solid ${dateFilter === f.id ? C.violet : C.border}`, background: dateFilter === f.id ? C.violetDim : 'transparent', color: dateFilter === f.id ? C.violetLight : C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>
+                  style={{ padding: '5px 12px', borderRadius: 7, border: `1px solid ${dateFilter === f.id ? C.violet : C.border}`, background: dateFilter === f.id ? C.violetDim : 'transparent', color: dateFilter === f.id ? C.violetLight : C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s' }}>
                   {f.label}
                 </button>
               ))}
@@ -700,7 +700,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                 {results.length > 0 && (
                   <div style={{ textAlign: 'center', padding: '24px 0' }}>
                     <button onClick={loadMore} disabled={loadingMore}
-                      style={{ padding: '13px 40px', background: loadingMore ? 'transparent' : `linear-gradient(135deg, rgba(108,99,255,0.15), rgba(108,99,255,0.05))`, border: `1px solid ${loadingMore ? C.border : C.violet}`, borderRadius: 10, color: loadingMore ? C.textSub : C.violetLight, fontSize: 14, fontWeight: 500, cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}>
+                      style={{ padding: '13px 40px', background: loadingMore ? 'transparent' : `linear-gradient(135deg, rgba(108,99,255,0.15), rgba(108,99,255,0.05))`, border: `1px solid ${loadingMore ? C.border : C.violet}`, borderRadius: 10, color: loadingMore ? C.textSub : C.violetLight, fontSize: 14, fontWeight: 500, cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.2s' }}>
                       {loadingMore ? '⟳ Loading more...' : '↓ Load More Viral Content'}
                     </button>
                     <div style={{ fontSize: 11, color: C.textDim, marginTop: 8 }}>{results.length} posts loaded</div>
@@ -742,7 +742,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                         const active = activeTab === tab;
                         return (
                           <button key={tab} onClick={() => setActiveTab(tab)}
-                            style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? C.violet : 'transparent'}`, color: active ? C.violetLight : C.textSub, fontSize: 13, fontWeight: active ? 600 : 400, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>
+                            style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? C.violet : 'transparent'}`, color: active ? C.violetLight : C.textSub, fontSize: 13, fontWeight: active ? 600 : 400, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s' }}>
                             {label}
                           </button>
                         );
@@ -765,7 +765,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                             Ready to analyze this post
                           </p>
                           <button onClick={() => analyzePost(selectedPost)}
-                            style={{ padding: '12px 28px', background: `linear-gradient(135deg, ${C.violet}, ${C.violetLight})`, border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                            style={{ padding: '12px 28px', background: `linear-gradient(135deg, ${C.violet}, ${C.violetLight})`, border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
                             🧠 Start Analysis
                           </button>
                         </div>
@@ -784,22 +784,22 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                             <div>
                               <label style={{ fontSize: 11, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Your Niche</label>
                               <input value={niche} onChange={e => setNiche(e.target.value)} placeholder="e.g. real estate, fitness, finance..."
-                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif" }} />
+                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'Satoshi', 'DM Sans', sans-serif" }} />
                             </div>
                             <div>
                               <label style={{ fontSize: 11, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Output Format</label>
                               <select value={selectedFormat} onChange={e => setSelectedFormat(e.target.value)}
-                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: 'pointer' }}>
+                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'Satoshi', 'DM Sans', sans-serif", cursor: 'pointer' }}>
                                 {CONTENT_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
                               </select>
                             </div>
                             <div>
                               <label style={{ fontSize: 11, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Your Style (paste 1-3 of your best posts)</label>
                               <textarea value={userStyle} onChange={e => setUserStyle(e.target.value)} rows={3} placeholder="Paste examples of your content so VYRA can match your voice..."
-                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif", resize: 'vertical' }} />
+                                style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'Satoshi', 'DM Sans', sans-serif", resize: 'vertical' }} />
                             </div>
                             <button onClick={generateContent} disabled={generating}
-                              style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 9, color: 'white', fontSize: 14, fontWeight: 600, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: generating ? 0.8 : 1 }}>
+                              style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 9, color: 'white', fontSize: 14, fontWeight: 600, cursor: generating ? 'not-allowed' : 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", opacity: generating ? 0.8 : 1 }}>
                               {generating ? '⟳ Generating...' : `✨ Generate ${selectedFormat}`}
                             </button>
                           </>
@@ -816,9 +816,9 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                               <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Your {selectedFormat}</span>
                               <div style={{ display: 'flex', gap: 8 }}>
                                 <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(generatedScript); }}
-                                  style={{ padding: '5px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>Copy</button>
+                                  style={{ padding: '5px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", transition: 'all 0.15s' }}>Copy</button>
                                 <button onClick={() => setGeneratedScript('')}
-                                  style={{ padding: '5px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>New</button>
+                                  style={{ padding: '5px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>New</button>
                               </div>
                             </div>
                             <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px', fontSize: 13, color: C.textSub, lineHeight: 1.8, whiteSpace: 'pre-wrap', maxHeight: 400, overflowY: 'auto' }}>
@@ -912,9 +912,9 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
               <input value={competitorHandle} onChange={e => setCompetitorHandle(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addCompetitor()}
                 placeholder="@username or account handle..."
-                style={{ flex: 1, padding: '12px 16px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 15, fontFamily: "'DM Sans', sans-serif" }} />
+                style={{ flex: 1, padding: '12px 16px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 15, fontFamily: "'Satoshi', 'DM Sans', sans-serif" }} />
               <button onClick={addCompetitor}
-                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
                 + Track Account
               </button>
             </div>
@@ -939,11 +939,11 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <button onClick={() => { setKeyword(handle); setActiveNav('search'); handleSearch(); }}
-                        style={{ padding: '7px 16px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 8, color: C.violetLight, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                        style={{ padding: '7px 16px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 8, color: C.violetLight, fontSize: 13, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
                         View Posts
                       </button>
                       <button onClick={() => setCompetitors(prev => prev.filter(c => c !== handle))}
-                        style={{ padding: '7px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textSub, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>×</button>
+                        style={{ padding: '7px 12px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textSub, fontSize: 13, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>×</button>
                     </div>
                   </div>
                 ))}
@@ -995,7 +995,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                 <h3 style={{ fontSize: 20, fontWeight: 600, color: C.text, marginBottom: 8 }}>Your calendar is empty</h3>
                 <p style={{ color: C.textSub, marginBottom: 24 }}>Generate content in the Search tab and it'll appear here automatically.</p>
                 <button onClick={() => setActiveNav('search')}
-                  style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                  style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
                   Start Searching →
                 </button>
               </div>
@@ -1019,7 +1019,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                       <button onClick={() => navigator.clipboard.writeText(item.script)}
-                        style={{ padding: '7px 16px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 8, color: C.violetLight, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                        style={{ padding: '7px 16px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 8, color: C.violetLight, fontSize: 13, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>
                         Copy Script
                       </button>
                     </div>
@@ -1041,9 +1041,9 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
               <label style={{ fontSize: 12, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 10 }}>Your Draft Content</label>
               <textarea value={predictorText} onChange={e => setPredictorText(e.target.value)} rows={8}
                 placeholder="Paste your caption, script, hook, or post draft here..."
-                style={{ width: '100%', padding: '14px 16px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, fontFamily: "'DM Sans', sans-serif", resize: 'vertical', lineHeight: 1.7 }} />
+                style={{ width: '100%', padding: '14px 16px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, fontFamily: "'Satoshi', 'DM Sans', sans-serif", resize: 'vertical', lineHeight: 1.7 }} />
               <button onClick={predictPerformance} disabled={predicting || !predictorText.trim()}
-                style={{ marginTop: 16, width: '100%', padding: '13px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 10, color: 'white', fontSize: 15, fontWeight: 600, cursor: predicting || !predictorText.trim() ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: predicting || !predictorText.trim() ? 0.7 : 1 }}>
+                style={{ marginTop: 16, width: '100%', padding: '13px', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', border: 'none', borderRadius: 10, color: 'white', fontSize: 15, fontWeight: 600, cursor: predicting || !predictorText.trim() ? 'not-allowed' : 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif", opacity: predicting || !predictorText.trim() ? 0.7 : 1 }}>
                 {predicting ? '⟳ Analyzing...' : '⚡ Predict Performance'}
               </button>
             </div>
@@ -1058,7 +1058,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                   <h3 style={{ fontSize: 18, fontWeight: 600, color: C.text }}>Prediction Report</h3>
                   <button onClick={() => navigator.clipboard.writeText(prediction)}
-                    style={{ padding: '6px 14px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 7, color: C.violetLight, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Copy</button>
+                    style={{ padding: '6px 14px', background: C.violetDim, border: `1px solid ${C.border}`, borderRadius: 7, color: C.violetLight, fontSize: 12, cursor: 'pointer', fontFamily: "'Satoshi', 'DM Sans', sans-serif" }}>Copy</button>
                 </div>
                 <div style={{ fontSize: 14, color: C.textSub, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>{prediction}</div>
               </div>
