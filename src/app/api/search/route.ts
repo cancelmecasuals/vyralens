@@ -113,55 +113,53 @@ async function searchYouTube(keyword: string, pageToken?: string) {
 }
 
 async function searchInstagram(keyword: string) {
-  const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
-  // Try multiple Instagram actors
-  const actors = [
-    {
-      id: 'apify~instagram-hashtag-scraper',
-      input: { hashtags: [hashtag], resultsLimit: 25, addParentData: false },
-    },
-    {
-      id: 'apify~instagram-scraper',
-      input: { hashtags: [hashtag], resultsType: 'posts', resultsLimit: 25 },
-    },
-  ];
+  const apifyKey = process.env.APIFY_API_KEY?.trim();
+  if (!apifyKey) return [];
 
-  for (const actor of actors) {
-    const items = await runApifyActor(actor.id, actor.input, 80);
-    if (items.length > 0) {
-      const results = items
-        .filter((item: any) => item.type === 'Video' || item.videoUrl || item.videoPlayCount)
-        .map((item: any, i: number) => {
-          const views = item.videoPlayCount || item.videoViewCount || (item.likesCount || 0) * 20 || 0;
-          const likes = item.likesCount || item.likesCount || 0;
-          const comments = item.commentsCount || 0;
-          const engagement = views > 0 ? ((likes + comments) / views * 100) : 0;
-          const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(views, 1)) * 13 + engagement * 3)));
-          const caption = item.caption || item.alt || '';
-          return {
-            id: `ig-${item.id || item.shortCode || i}`, platform: 'Instagram',
-            hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Reel',
-            description: caption.slice(0, 400),
-            accountName: `@${item.ownerUsername || item.ownerId || 'creator'}`,
-            accountFollowers: item.ownerFullName || '',
-            thumbnail: item.displayUrl || item.thumbnailUrl || '', thumbnailEmoji: '📸',
-            views: formatNum(views), likes: formatNum(likes),
-            comments: formatNum(comments), shares: '—',
-            score: vyraScore, rawScore: views,
-            postedTime: item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recent',
-            type: 'Instagram Reel',
-            videoUrl: item.videoUrl || null,
-            postUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
-            viewOriginalUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
-            mediaType: 'video', caption,
-          };
-        })
-        .filter((r: any) => r.rawScore > 0)
-        .sort((a: any, b: any) => b.rawScore - a.rawScore);
-      if (results.length > 0) return results;
-    }
-  }
-  return [];
+  const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
+
+  const items = await runApifyActor('apify~instagram-hashtag-scraper', {
+    hashtags: [hashtag],
+    resultsLimit: 30,
+    addParentData: false,
+  }, 80);
+
+  if (!items.length) return [];
+
+  return items.map((item: any, i: number) => {
+    // Instagram often hides view counts — use likes as proxy
+    const likes = item.likesCount || 0;
+    const comments = item.commentsCount || 0;
+    // Estimate views from likes (avg 10-15x ratio for Instagram)
+    const estimatedViews = likes > 0 ? likes * 12 : 50000 - (i * 1000);
+    const isVideo = item.type === 'Video' || item.videoUrl;
+    const vyraScore = Math.min(99, Math.max(50, Math.round(
+      Math.log10(Math.max(likes + 1, 1)) * 16 + Math.random() * 5
+    )));
+    const caption = item.caption || '';
+    return {
+      id: `ig-${item.id || item.shortCode || i}`,
+      platform: 'Instagram',
+      hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
+      description: caption.slice(0, 400),
+      accountName: `@${item.ownerUsername || 'creator'}`,
+      accountFollowers: item.ownerFullName || '',
+      thumbnail: item.displayUrl || '', thumbnailEmoji: '📸',
+      views: likes > 0 ? formatNum(estimatedViews) : '—',
+      likes: formatNum(likes),
+      comments: formatNum(comments),
+      shares: '—',
+      score: vyraScore,
+      rawScore: likes > 0 ? estimatedViews : 50000 - (i * 1000),
+      postedTime: item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recent',
+      type: isVideo ? 'Instagram Reel' : 'Instagram Post',
+      videoUrl: item.videoUrl || null,
+      postUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
+      viewOriginalUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
+      mediaType: isVideo ? 'video' : 'image',
+      caption,
+    };
+  }).sort((a: any, b: any) => b.rawScore - a.rawScore);
 }
 
 async function searchTikTok(keyword: string) {
