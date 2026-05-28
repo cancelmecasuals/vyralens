@@ -19,6 +19,7 @@ const PLATFORMS = [
   { id: 'instagram', label: 'Instagram', icon: '📸', color: '#E1306C' },
   { id: 'youtube', label: 'YouTube', icon: '▶️', color: '#FF0000' },
   { id: 'x', label: 'X / Twitter', icon: '✖️', color: '#1DA1F2' },
+  { id: 'reddit', label: 'Reddit', icon: '🔴', color: '#FF4500' },
 ];
 
 const NAV_ITEMS = [

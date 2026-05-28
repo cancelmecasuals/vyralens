@@ -219,84 +219,189 @@ async function searchInstagram(keyword: string, page = 0) {
   }
 }
 
-async function searchTikTok(keyword: string) {
-  const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
-  const actors = [
-    {
-      id: 'clockworks~tiktok-scraper',
-      input: { hashtags: [hashtag], resultsPerPage: 25, maxResults: 25, shouldDownloadVideos: false, shouldDownloadCovers: false },
-    },
-    {
-      id: 'clockworks~tiktok-scraper',
-      input: { searchQueries: [keyword], maxResults: 25, shouldDownloadVideos: false },
-    },
-  ];
+async function searchTikTok(keyword: string, page = 0) {
+  const scKey = process.env.SCRAPECREATORS_API_KEY?.trim();
+  if (!scKey) return generateMockTikTok(keyword, page);
 
-  for (const actor of actors) {
-    const items = await runApifyActor(actor.id, actor.input, 80);
-    if (items.length > 0) {
-      return items.map((item: any, i: number) => {
-        const views = item.playCount || item.stats?.playCount || item.videoMeta?.playCount || 0;
-        const likes = item.diggCount || item.stats?.diggCount || 0;
-        const comments = item.commentCount || item.stats?.commentCount || 0;
-        const shares = item.shareCount || item.stats?.shareCount || 0;
-        const engagement = views > 0 ? ((likes + comments) / views * 100) : 0;
-        const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(views, 1)) * 13 + engagement * 3)));
-        const text = item.text || item.desc || item.description || '';
-        return {
-          id: `tt-${item.id || i}`, platform: 'TikTok',
-          hook: text.split('\n')[0]?.slice(0, 120) || 'TikTok Video',
-          description: text.slice(0, 400),
-          accountName: `@${item.authorMeta?.name || item.author?.uniqueId || item.authorMeta?.nickname || 'creator'}`,
-          accountFollowers: item.authorMeta?.fans ? formatNum(item.authorMeta.fans) + ' followers' : '',
-          thumbnail: item.covers?.default || item.coverUrl || item.videoMeta?.coverUrl || '', thumbnailEmoji: '🎵',
-          views: formatNum(views), likes: formatNum(likes),
-          comments: formatNum(comments), shares: formatNum(shares),
-          score: vyraScore, rawScore: views,
-          postedTime: item.createTime ? new Date(item.createTime * 1000).toLocaleDateString() : 'Recent',
-          type: 'TikTok Video',
-          videoUrl: item.videoUrl || item.video?.playAddr || null,
-          postUrl: item.webVideoUrl || (item.id ? `https://tiktok.com/@${item.authorMeta?.name}/video/${item.id}` : null),
-          viewOriginalUrl: item.webVideoUrl || (item.id ? `https://tiktok.com/@${item.authorMeta?.name}/video/${item.id}` : null),
-          mediaType: 'video',
-        };
-      }).sort((a: any, b: any) => b.rawScore - a.rawScore);
-    }
+  try {
+    const cursor = page * 20;
+    const url = `https://api.scrapecreators.com/v1/tiktok/search/top?query=${encodeURIComponent(keyword)}&sort_by=most-liked&publish_time=all-time&cursor=${cursor}`;
+    const res = await fetch(url, {
+      headers: { 'x-api-key': scKey },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) { console.error('TikTok SC error:', res.status); return generateMockTikTok(keyword, page); }
+    const data = await res.json();
+    const items = data?.items || data?.data?.items || data?.videos || [];
+    if (!items.length) return generateMockTikTok(keyword, page);
+
+    return items.map((item: any, i: number) => {
+      const stats = item.statistics || item.stats || {};
+      const views = stats.play_count || item.play_count || item.views || 0;
+      const likes = stats.digg_count || item.digg_count || item.likes || 0;
+      const comments = stats.comment_count || item.comment_count || 0;
+      const shares = stats.share_count || item.share_count || 0;
+      const engagement = views > 0 ? ((likes + comments) / views * 100) : 0;
+      const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(views + 1, 1)) * 13 + engagement * 3)));
+      const desc = item.desc || item.description || item.text || '';
+      const author = item.author?.uniqueId || item.author?.unique_id || item.authorMeta?.name || 'creator';
+      const videoId = item.id || item.aweme_id || '';
+      const postUrl = videoId ? `https://www.tiktok.com/@${author}/video/${videoId}` : null;
+      const cover = item.video?.cover || item.covers?.default || item.cover || item.thumbnail || '';
+      return {
+        id: `tt-${videoId || i}`, platform: 'TikTok',
+        hook: desc.split('\n')[0]?.slice(0, 120) || 'TikTok Video',
+        description: desc.slice(0, 400),
+        accountName: `@${author}`,
+        accountFollowers: item.authorMeta?.fans ? formatNum(item.authorMeta.fans) + ' followers' : '',
+        thumbnail: cover, thumbnailEmoji: '🎵',
+        views: formatNum(views), likes: formatNum(likes),
+        comments: formatNum(comments), shares: formatNum(shares),
+        score: vyraScore, rawScore: views,
+        postedTime: item.createTime ? new Date(item.createTime * 1000).toLocaleDateString() : 'Recent',
+        type: 'TikTok Video',
+        videoUrl: item.video?.playAddr || item.videoUrl || null,
+        postUrl, viewOriginalUrl: postUrl,
+        mediaType: 'video',
+      };
+    }).sort((a: any, b: any) => b.rawScore - a.rawScore);
+  } catch (err) {
+    console.error('TikTok error:', err);
+    return generateMockTikTok(keyword, page);
   }
-  return [];
 }
 
-function generateXPosts(keyword: string, page: number) {
-  const xHooks = [
-    `Thread: Everything I know about ${keyword} after 5 years (you need to read this)`,
-    `Unpopular opinion: ${keyword} is the most misunderstood topic online right now`,
+function generateMockTikTok(keyword: string, page = 0) {
+  return MOCK_HOOKS.map((h, i) => {
+    const hook = h.replace(/\[keyword\]/g, keyword);
+    const views = Math.floor(5000000 / (page * 0.7 + 1) / (i * 0.15 + 1) + Math.random() * 300000);
+    return {
+      id: `tt-mock-p${page}-${i}`, platform: 'TikTok', hook,
+      description: hook, accountName: `@${keyword.toLowerCase().replace(/\s/g, '_')}${i}`,
+      accountFollowers: `${Math.floor(Math.random() * 500 + 10)}K followers`,
+      thumbnail: '', thumbnailEmoji: '🎵',
+      views: formatNum(views), likes: formatNum(Math.floor(views * 0.12)),
+      comments: formatNum(Math.floor(views * 0.008)), shares: formatNum(Math.floor(views * 0.03)),
+      score: Math.min(99, Math.max(50, Math.floor(92 - page * 2 - i * 0.4))),
+      rawScore: views, postedTime: `${Math.floor(Math.random() * 21 + 1)} days ago`,
+      type: 'TikTok Video', mediaType: 'video', postUrl: null, viewOriginalUrl: null, videoUrl: null,
+    };
+  });
+}
+
+async function searchX(keyword: string, page = 0) {
+  const scKey = process.env.SCRAPECREATORS_API_KEY?.trim();
+  if (!scKey) return generateMockX(keyword, page);
+
+  try {
+    const url = `https://api.scrapecreators.com/v1/twitter/search?query=${encodeURIComponent(keyword)}&type=Top`;
+    const res = await fetch(url, {
+      headers: { 'x-api-key': scKey },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) { console.error('X SC error:', res.status); return generateMockX(keyword, page); }
+    const data = await res.json();
+    const tweets = data?.tweets || data?.data || data?.results || [];
+    if (!tweets.length) return generateMockX(keyword, page);
+
+    return tweets.map((tweet: any, i: number) => {
+      const metrics = tweet.public_metrics || tweet.legacy || {};
+      const likes = metrics.favorite_count || metrics.like_count || tweet.likes || 0;
+      const retweets = metrics.retweet_count || tweet.retweets || 0;
+      const replies = metrics.reply_count || tweet.replies || 0;
+      const impressions = metrics.impression_count || tweet.impressions || likes * 20;
+      const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(impressions + 1, 1)) * 10)));
+      const text = tweet.full_text || tweet.text || tweet.legacy?.full_text || '';
+      const username = tweet.user?.screen_name || tweet.author?.username || tweet.username || 'user';
+      const tweetId = tweet.id_str || tweet.id || tweet.rest_id || '';
+      const postUrl = tweetId ? `https://twitter.com/${username}/status/${tweetId}` : null;
+      return {
+        id: `x-${tweetId || i}`, platform: 'X / Twitter',
+        hook: text.slice(0, 120),
+        description: text.slice(0, 400),
+        accountName: `@${username}`,
+        accountFollowers: tweet.user?.followers_count ? formatNum(tweet.user.followers_count) + ' followers' : '',
+        thumbnail: '', thumbnailEmoji: '✖️',
+        views: formatNum(impressions), likes: formatNum(likes),
+        comments: formatNum(replies), shares: formatNum(retweets),
+        score: vyraScore, rawScore: impressions || likes * 20,
+        postedTime: tweet.created_at ? new Date(tweet.created_at).toLocaleDateString() : 'Recent',
+        type: 'X Post', mediaType: 'text', postUrl, viewOriginalUrl: postUrl, videoUrl: null,
+      };
+    }).sort((a: any, b: any) => b.rawScore - a.rawScore);
+  } catch (err) {
+    console.error('X error:', err);
+    return generateMockX(keyword, page);
+  }
+}
+
+function generateMockX(keyword: string, page = 0) {
+  const hooks = [
+    `Thread: Everything I know about ${keyword} after 5 years`,
+    `Unpopular opinion: ${keyword} is the most misunderstood topic online`,
     `I spent $50K on ${keyword}. Here's what I learned:`,
     `The ${keyword} playbook nobody is sharing openly:`,
-    `Hot take: most ${keyword} advice is completely backwards. Here's why:`,
+    `Hot take: most ${keyword} advice is completely backwards.`,
     `After 10 years in ${keyword}, this is what actually moves the needle:`,
     `${keyword} in 2026 hits different. Here's what changed:`,
     `I went from 0 to $100K with ${keyword}. The full breakdown:`,
     `Stop following ${keyword} gurus. Start doing this instead:`,
     `The ${keyword} truth they don't want you to know:`,
   ];
-  return xHooks.map((hook, i) => {
-    const baseViews = Math.floor(2000000 / (page * 0.6 + 1) / (i * 0.2 + 1) + Math.random() * 200000);
-    const score = Math.min(99, Math.max(50, Math.floor(88 - (i * 1) + Math.random() * 8)));
+  return hooks.map((hook, i) => {
+    const impressions = Math.floor(2000000 / (page * 0.6 + 1) / (i * 0.2 + 1) + Math.random() * 200000);
     return {
-      id: `x-p${page}-${i}`, platform: 'X / Twitter', hook,
-      description: hook,
-      accountName: `@${keyword.toLowerCase().split(' ')[0]}_expert${i}`,
+      id: `x-mock-p${page}-${i}`, platform: 'X / Twitter', hook,
+      description: hook, accountName: `@${keyword.toLowerCase().split(' ')[0]}_expert${i}`,
       accountFollowers: `${Math.floor(Math.random() * 200 + 10)}K followers`,
       thumbnail: '', thumbnailEmoji: '✖️',
-      views: formatNum(baseViews),
-      likes: formatNum(Math.floor(baseViews * 0.04)),
-      comments: formatNum(Math.floor(baseViews * 0.005)),
-      shares: formatNum(Math.floor(baseViews * 0.025)),
-      score, rawScore: baseViews,
-      postedTime: `${Math.floor(Math.random() * 14 + 1)} days ago`,
-      type: 'X Thread', mediaType: 'text',
+      views: formatNum(impressions), likes: formatNum(Math.floor(impressions * 0.04)),
+      comments: formatNum(Math.floor(impressions * 0.005)), shares: formatNum(Math.floor(impressions * 0.025)),
+      score: Math.min(99, Math.max(50, Math.floor(88 - i * 1 + Math.random() * 8))),
+      rawScore: impressions, postedTime: `${Math.floor(Math.random() * 14 + 1)} days ago`,
+      type: 'X Thread', mediaType: 'text', postUrl: null, viewOriginalUrl: null, videoUrl: null,
     };
   });
+}
+
+async function searchReddit(keyword: string, page = 0) {
+  const scKey = process.env.SCRAPECREATORS_API_KEY?.trim();
+  if (!scKey) return [];
+
+  try {
+    const url = `https://api.scrapecreators.com/v1/reddit/subreddit/search?subreddit=all&query=${encodeURIComponent(keyword)}&sort=top&time=all`;
+    const res = await fetch(url, {
+      headers: { 'x-api-key': scKey },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) { console.error('Reddit SC error:', res.status); return []; }
+    const data = await res.json();
+    const posts = data?.posts || data?.data || data?.results || [];
+    if (!posts.length) return [];
+
+    return posts.map((post: any, i: number) => {
+      const score = post.score || post.ups || 0;
+      const comments = post.num_comments || post.comments || 0;
+      const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(score + 1, 1)) * 15)));
+      const postUrl = post.url || post.permalink ? `https://reddit.com${post.permalink}` : null;
+      return {
+        id: `reddit-${post.id || i}`, platform: 'Reddit',
+        hook: post.title?.slice(0, 120) || 'Reddit Post',
+        description: post.selftext?.slice(0, 400) || post.title || '',
+        accountName: `u/${post.author || 'user'}`,
+        accountFollowers: `r/${post.subreddit || 'all'}`,
+        thumbnail: '', thumbnailEmoji: '🔴',
+        views: formatNum(score * 8), likes: formatNum(score),
+        comments: formatNum(comments), shares: '—',
+        score: vyraScore, rawScore: score,
+        postedTime: post.created_utc ? new Date(post.created_utc * 1000).toLocaleDateString() : 'Recent',
+        type: 'Reddit Post', mediaType: 'text', postUrl, viewOriginalUrl: postUrl, videoUrl: null,
+      };
+    }).sort((a: any, b: any) => b.rawScore - a.rawScore);
+  } catch (err) {
+    console.error('Reddit error:', err);
+    return [];
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -308,23 +413,17 @@ export async function POST(req: NextRequest) {
     let nextPageToken: string | null = null;
 
     if (platform === 'all') {
-      // Fetch ALL platforms simultaneously — then merge and sort purely by virality
-      const [ytData, igItems, ttItems] = await Promise.all([
+      const [ytData, igItems, ttItems, xItems] = await Promise.all([
         searchYouTube(keyword, pageToken),
-        page === 0 ? searchInstagram(keyword) : Promise.resolve([]),
-        page === 0 ? searchTikTok(keyword) : Promise.resolve([]),
+        searchInstagram(keyword, page),
+        searchTikTok(keyword, page),
+        searchX(keyword, page),
       ]);
-
       nextPageToken = ytData.nextPageToken;
-
       const ytResults = ytData.results;
-      // Use real data where available, mock where not
-      const igResults = igItems.length > 0 ? igItems : mockFor(keyword, 'instagram', page, 15);
-      const ttResults = ttItems.length > 0 ? ttItems : mockFor(keyword, 'tiktok', page, 15);
-      const xResults = generateXPosts(keyword, page);
-
-      // Merge ALL platforms and sort PURELY by rawScore — most viral first regardless of platform
-      results = [...ytResults, ...igResults, ...ttResults, ...xResults]
+      const igResults = igItems.length > 0 ? igItems : mockFor(keyword, 'instagram', page, 10);
+      const ttResults = ttItems.length > 0 ? ttItems : mockFor(keyword, 'tiktok', page, 10);
+      results = [...ytResults, ...igResults, ...ttResults, ...xItems]
         .sort((a, b) => b.rawScore - a.rawScore);
 
     } else if (platform === 'youtube') {
@@ -334,17 +433,20 @@ export async function POST(req: NextRequest) {
       results.sort((a, b) => b.rawScore - a.rawScore);
 
     } else if (platform === 'instagram') {
-      const ig = await searchInstagram(keyword);
+      const ig = await searchInstagram(keyword, page);
       results = ig.length > 0 ? ig : mockFor(keyword, 'instagram', page);
       results.sort((a, b) => b.rawScore - a.rawScore);
 
     } else if (platform === 'tiktok') {
-      const tt = await searchTikTok(keyword);
-      results = tt.length > 0 ? tt : mockFor(keyword, 'tiktok', page);
+      results = await searchTikTok(keyword, page);
       results.sort((a, b) => b.rawScore - a.rawScore);
 
     } else if (platform === 'x') {
-      results = generateXPosts(keyword, page);
+      results = await searchX(keyword, page);
+      results.sort((a, b) => b.rawScore - a.rawScore);
+
+    } else if (platform === 'reddit') {
+      results = await searchReddit(keyword, page);
       results.sort((a, b) => b.rawScore - a.rawScore);
     }
 
