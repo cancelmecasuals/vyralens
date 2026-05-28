@@ -17,35 +17,49 @@ export async function GET(req: NextRequest) {
     'Accept': '*/*',
   };
 
-  try {
-    const endpoints = [
-      `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=user`,
-      `https://www.instagram.com/api/v1/fbsearch/accounts/?query=${encodeURIComponent(keyword)}&count=30`,
-      `https://www.instagram.com/api/v1/users/search/?query=${encodeURIComponent(keyword)}&count=30`,
-      `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=blended&include_reel=false`,
-    ];
+  // Extract media from media_grid AND find users
+  const res = await fetch(
+    `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=blended&include_reel=true`,
+    { headers, signal: AbortSignal.timeout(10000) }
+  );
+  const data = await res.json();
 
-    const results: any = {};
-    for (const url of endpoints) {
-      const key = url.split('?')[0].split('/').slice(-2).join('/');
-      try {
-        const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-        const data = await res.json();
-        const users = data?.users || data?.list?.filter((i: any) => i.user || i.username) || data?.accounts || [];
-        results[key] = {
-          status: res.status,
-          usersFound: users.length,
-          topKeys: Object.keys(data || {}).slice(0, 8),
-          firstUser: users[0] ? {
-            username: users[0]?.user?.username || users[0]?.username,
-            followers: users[0]?.user?.follower_count || users[0]?.follower_count,
-            bio: (users[0]?.user?.biography || users[0]?.biography || '').slice(0, 60),
-          } : null,
-        };
-      } catch (e: any) { results[key] = { error: e.message }; }
+  // Extract posts from media_grid
+  const sections = data?.media_grid?.sections || [];
+  const mediaPosts: any[] = [];
+  for (const s of sections) {
+    for (const m of (s?.layout_content?.medias || [])) {
+      const media = m?.media || m;
+      if (media?.id) mediaPosts.push(media);
     }
-    return NextResponse.json(results);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message });
   }
+
+  // Extract users from top_results or other keys
+  const topResults = data?.top_results || data?.users || data?.accounts || [];
+  const users = Array.isArray(topResults) ? topResults : [];
+
+  // Also check for users inside media_grid sections
+  const allKeys = Object.keys(data || {});
+
+  return NextResponse.json({
+    status: res.status,
+    allKeys,
+    mediaPostsFound: mediaPosts.length,
+    usersInTopResults: users.length,
+    // Show all data keys deeply
+    allDataKeys: JSON.stringify(Object.fromEntries(
+      Object.entries(data || {}).map(([k, v]: any) => [k, typeof v === 'object' ? Object.keys(v || {}).slice(0, 5) : v])
+    )).slice(0, 500),
+    // Sample media post to see if it has like_count
+    sampleMedia: mediaPosts[0] ? {
+      id: mediaPosts[0].id,
+      like_count: mediaPosts[0].like_count,
+      code: mediaPosts[0].code,
+      media_type: mediaPosts[0].media_type,
+      username: mediaPosts[0].user?.username,
+      caption: mediaPosts[0].caption?.text?.slice(0, 60),
+    } : null,
+    // Raw to find users
+    rawSlice: JSON.stringify(data).slice(0, 1000),
+  });
 }
