@@ -3,51 +3,65 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const apifyKey = process.env.APIFY_API_KEY?.trim();
-  const bdToken = process.env.BRIGHT_DATA_API_KEY?.trim();
   const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
+  const actor = req.nextUrl.searchParams.get('actor') || 'instaprism~instagram-hashtag-scraper';
 
-  // Step 1: Get URLs from Apify hashtag stats (no login needed)
-  const apifyRes = await fetch(
-    `https://api.apify.com/v2/acts/leadsbrary~instagram-hashtag-stats/run-sync-get-dataset-items?token=${apifyKey}&timeout=60&memory=512`,
-    {
+  const inputs: Record<string, any> = {
+    'instaprism~instagram-hashtag-scraper': {
+      hashtags: [keyword],
+      resultsLimit: 100,
+      sortBy: 'top',
+    },
+    'apify~instagram-hashtag-analytics-scraper': {
+      hashtags: [keyword],
+      maxResults: 100,
+      sortOrder: 'top',
+    },
+    'parseforge~instagram-hashtag-analytics-scraper': {
+      hashtag: keyword,
+      maxPosts: 100,
+    },
+  };
+
+  const input = inputs[actor] || inputs['instaprism~instagram-hashtag-scraper'];
+
+  try {
+    const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=512&maxItems=100`;
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hashtags: [keyword], resultsType: 'top', resultsLimit: 50 }),
-      signal: AbortSignal.timeout(65000),
-    }
-  );
-  const apifyData = await apifyRes.json();
-  const items = Array.isArray(apifyData) ? apifyData : [];
-  const topPosts = items[0]?.topPosts || [];
-  const urls = topPosts.map((p: any) => p.url).filter(Boolean);
+      body: JSON.stringify(input),
+      signal: AbortSignal.timeout(95000),
+    });
 
-  if (!urls.length) return NextResponse.json({ error: 'No URLs from Apify', apifyData });
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = text.slice(0, 500); }
 
-  // Step 2: Enrich with Bright Data to get likes
-  const bdUrls = urls.map((url: string) => ({ url }));
-  const bdRes = await fetch(
-    `https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_lk5ns7kz21pck8jpis&format=json`,
-    {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${bdToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(bdUrls),
-      signal: AbortSignal.timeout(55000),
-    }
-  );
-  const posts = await bdRes.json();
-  const sorted = Array.isArray(posts)
-    ? posts.sort((a: any, b: any) => (b.likes || b.num_likes || 0) - (a.likes || a.num_likes || 0))
-    : [];
+    const items = Array.isArray(data) ? data : [];
+    const sorted = items
+      .filter((i: any) => (i.likesCount || i.likes || i.like_count || 0) > 0)
+      .sort((a: any, b: any) => {
+        const aL = a.likesCount || a.likes || a.like_count || 0;
+        const bL = b.likesCount || b.likes || b.like_count || 0;
+        return bL - aL;
+      });
 
-  return NextResponse.json({
-    urlsFromApify: urls.length,
-    bdPostsReturned: sorted.length,
-    maxLikes: sorted[0]?.likes || sorted[0]?.num_likes || 0,
-    top5: sorted.slice(0, 5).map((p: any) => ({
-      likes: p.likes || p.num_likes,
-      username: p.user_posted,
-      url: p.url,
-      date: p.date_posted,
-    })),
-  });
+    const maxLikes = sorted[0] ? (sorted[0].likesCount || sorted[0].likes || sorted[0].like_count || 0) : 0;
+
+    return NextResponse.json({
+      actor, status: res.status,
+      totalItems: items.length,
+      itemsWithLikes: sorted.length,
+      maxLikes,
+      sampleKeys: items[0] ? Object.keys(items[0]).slice(0, 15) : [],
+      top5: sorted.slice(0, 5).map((i: any) => ({
+        likes: i.likesCount || i.likes || i.like_count,
+        url: i.url || i.postUrl || i.shortCode,
+        caption: (i.caption || i.text || '').slice(0, 60),
+      })),
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message, actor });
+  }
 }
