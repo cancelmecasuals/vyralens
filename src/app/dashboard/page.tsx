@@ -120,8 +120,22 @@ export default function Dashboard() {
     setSelectedPost(null);
     setAnalysis('');
     setGeneratedScript('');
-    await new Promise(r => setTimeout(r, 1200));
-    setResults(generateMockResults(keyword, activePlatform));
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword, platform: activePlatform }),
+      });
+      const data = await res.json();
+      if (data.results?.length > 0) {
+        setResults(data.results);
+      } else {
+        // Fallback to mock if no real results
+        setResults(generateMockResults(keyword, activePlatform));
+      }
+    } catch {
+      setResults(generateMockResults(keyword, activePlatform));
+    }
     setSearching(false);
   };
 
@@ -132,29 +146,64 @@ export default function Dashboard() {
     setActiveTab('analysis');
     setAnalyzing(true);
 
-    const prompt = `You are a viral content strategist. Analyze this viral social media post and provide a detailed breakdown.
+    // Step 1 — try to get transcript for video content
+    let transcriptSection = '';
+    if (post.mediaType === 'video' && (post.videoId || post.videoUrl)) {
+      try {
+        setAnalysis('🎙️ Transcribing audio...');
+        const tRes = await fetch('/api/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoUrl: post.videoUrl,
+            videoId: post.videoId,
+            platform: post.platform,
+          }),
+        });
+        const tData = await tRes.json();
+        if (tData.transcript) {
+          transcriptSection = `\nACTUAL VIDEO TRANSCRIPT:\n"${tData.transcript}"\n`;
+        }
+      } catch { /* continue without transcript */ }
+    }
 
-Post Hook: "${post.hook}"
+    // Step 2 — for text content (Reddit, X) use the full text
+    if (post.mediaType === 'text' && post.selfText) {
+      transcriptSection = `\nFULL POST TEXT:\n"${post.selfText}"\n`;
+    }
+    if (post.description) {
+      transcriptSection += `\nDESCRIPTION: ${post.description}`;
+    }
+
+    setAnalysis('🧠 Analyzing viral patterns...');
+
+    const prompt = `You are a world-class viral content strategist. Analyze this real viral ${post.platform} post with deep expertise.
+
+POST DETAILS:
+Title/Hook: "${post.hook}"
 Platform: ${post.platform}
+Account: ${post.accountName} ${post.accountFollowers}
 Views: ${post.views} | Likes: ${post.likes} | Comments: ${post.comments} | Shares: ${post.shares}
+Posted: ${post.postedTime}
 VyraScore: ${post.score}/100
+${transcriptSection}
 
-Provide a structured analysis with these exact sections:
+Provide a detailed viral analysis with these exact sections:
 
 🪝 HOOK ANALYSIS
-Explain exactly why this hook stops the scroll. What psychological trigger does it use?
+Why does this hook stop the scroll? What specific psychological trigger does it use?
 
 📐 CONTENT STRUCTURE
-Break down the likely structure of this content (opening, middle, CTA).
+Break down the exact structure — opening, middle, close. What keeps people watching/reading?
 
 🧠 VIRAL TRIGGERS
-List the specific emotional and psychological triggers at work.
+List the specific emotional and psychological triggers. Why do people share this?
 
 ⏰ TIMING & DISTRIBUTION
-Why this type of content performs on ${post.platform}. Best posting times.
+Why this works on ${post.platform}. Best posting times. Algorithm insights.
 
 🎯 THE FORMULA
-Summarize the replicable viral formula in 2-3 sentences a creator can use immediately.`;
+The replicable viral formula in 2-3 sentences any creator can use immediately.`;
 
     try {
       const res = await fetch('/api/analyze', {
@@ -164,12 +213,12 @@ Summarize the replicable viral formula in 2-3 sentences a creator can use immedi
       });
       const data = await res.json();
       if (data.error) {
-        setAnalysis(`⚠️ Error: ${data.error}\n\nCheck that your ANTHROPIC_API_KEY is set correctly in Vercel environment variables.`);
+        setAnalysis(`⚠️ Error: ${data.error}`);
       } else {
         setAnalysis(data.result || 'No analysis returned.');
       }
     } catch (err: any) {
-      setAnalysis(`⚠️ Connection error: ${err.message}\n\nPlease try again.`);
+      setAnalysis(`⚠️ Connection error: ${err.message}`);
     }
     setAnalyzing(false);
   };
@@ -386,7 +435,11 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                     style={{ background: C.surface, border: `1px solid ${selectedPost?.id === post.id ? C.violet : C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', transition: 'all 0.2s', animation: `fadeUp 0.4s ease ${i * 60}ms both` }}>
                     <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                       {/* Thumbnail */}
-                      <div style={{ width: 56, height: 56, borderRadius: 10, background: C.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0 }}>{post.thumbnail}</div>
+                      <div style={{ width: 56, height: 56, borderRadius: 10, background: C.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0, overflow: 'hidden' }}>
+                        {post.thumbnail
+                          ? <img src={post.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : post.thumbnailEmoji || '📱'}
+                      </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
                           <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 100, background: C.violetDim, color: C.violetLight, fontWeight: 600 }}>{post.platform}</span>
@@ -438,10 +491,16 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                         <button onClick={() => { setSelectedPost(null); setAnalysis(''); setGeneratedScript(''); }}
                           style={{ background: 'transparent', border: 'none', color: C.textSub, cursor: 'pointer', fontSize: 18, flexShrink: 0, padding: '0 0 0 10px' }}>×</button>
                       </div>
-                      <div style={{ display: 'flex', gap: 12 }}>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                         <div style={{ fontSize: 11, color: C.textSub }}>{selectedPost.accountName}</div>
                         <div style={{ fontSize: 11, color: C.textSub }}>·</div>
                         <div style={{ fontSize: 11, color: C.textSub }}>{selectedPost.accountFollowers}</div>
+                        {(selectedPost.videoUrl || selectedPost.postUrl) && (
+                          <a href={selectedPost.videoUrl || selectedPost.postUrl} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 11, color: C.violet, textDecoration: 'none', marginLeft: 'auto' }}>
+                            View Original ↗
+                          </a>
+                        )}
                       </div>
                     </div>
 
