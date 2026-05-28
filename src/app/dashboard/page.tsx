@@ -231,7 +231,7 @@ Platform: ${post.platform}
 Account: ${post.accountName} ${post.accountFollowers}
 Views: ${post.views} | Likes: ${post.likes} | Comments: ${post.comments} | Shares: ${post.shares}
 Posted: ${post.postedTime}
-VyraScore: ${post.score}/100
+VYRA Score: ${post.score}/100
 ${transcriptSection}
 
 Provide a detailed viral analysis:
@@ -281,7 +281,7 @@ The replicable viral formula in 2-3 sentences any creator can use immediately.`;
 VIRAL REFERENCE POST:
 Hook: "${selectedPost.hook}"
 Platform: ${selectedPost.platform}
-Performance: ${selectedPost.views} views, VyraScore ${selectedPost.score}/100
+Performance: ${selectedPost.views} views, VYRA Score ${selectedPost.score}/100
 Hook Type: ${selectedPost.type}
 
 USER'S DETAILS:
@@ -382,7 +382,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
       <style dangerouslySetInnerHTML={{__html:`@keyframes spin { to { transform: rotate(360deg); } }`}}/>
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.border}`, borderTop: `3px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-        <p style={{ color: C.textSub, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>Loading VyraLens...</p>
+        <p style={{ color: C.textSub, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>Loading VYRA...</p>
       </div>
     </div>
   );
@@ -390,9 +390,9 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
   // Paywall
   if (!subscription) {
     const plans = [
-      { id: 'creator', name: 'Creator', price: 39, desc: 'Solo creators getting serious', features: ['All 4 platforms', '50 searches/month', 'AI hook analysis', 'Script generator', 'Save 50 posts'], highlight: false },
-      { id: 'pro', name: 'Pro', price: 99, desc: 'For creators who want to dominate', features: ['Unlimited searches', 'Trending Now feed', 'Competitor tracker', 'Content calendar', 'Performance predictor', 'Voice matching'], highlight: true },
-      { id: 'agency', name: 'Agency', price: 199, desc: 'Teams and agencies', features: ['Everything in Pro', '5 team seats', 'White-label scripts', 'API access', 'Priority support'], highlight: false },
+      { id: 'creator', name: 'Creator', price: 39, desc: 'For solo creators building their audience', features: ['All platforms', '500 searches/month', 'AI viral breakdown', 'Script generator', '30-day guarantee'], highlight: false },
+      { id: 'pro', name: 'Pro', price: 99, desc: 'For serious creators scaling fast', features: ['Unlimited searches', 'All platforms', 'Advanced AI analysis', 'Voice-matched scripts', 'Priority support', '30-day guarantee'], highlight: true },
+      { id: 'agency', name: 'Agency', price: 199, desc: 'For teams managing multiple brands', features: ['Everything in Pro', '10 team seats', 'White-label reports', 'API access', 'Dedicated support', '30-day guarantee'], highlight: false },
     ];
 
     const handlePlanClick = async (planId: string) => {
@@ -404,112 +404,75 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
         });
         const data = await res.json();
         if (data.url) window.location.href = data.url;
-        else alert(`Error: ${data.error || 'Unknown error — please try again.'}`);
-      } catch (e: any) {
-        alert(`Error: ${e.message}`);
-      }
+        else alert(`Error: ${data.error || 'Unknown error'}`);
+      } catch (e: any) { alert(`Error: ${e.message}`); }
     };
 
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'DM Sans', sans-serif", overflowY: 'auto' }}>
+      <div style={{ minHeight: '100vh', background: '#080808', fontFamily: "'Satoshi', 'DM Sans', sans-serif", overflowY: 'auto' }}>
         <style dangerouslySetInnerHTML={{__html:`
-          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+          @import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=clash-display@700,600&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-          .plan-row { transition: all 0.2s; cursor: pointer; }
-          .plan-row:hover { transform: translateY(-2px) !important; border-color: #6C63FF !important; }
+          @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+          .pw-plan { transition: all 0.25s; cursor: pointer; }
+          .pw-plan:hover { transform: translateY(-4px); }
+          .pw-plan.hl { background: rgba(245,166,35,0.06) !important; border-color: rgba(245,166,35,0.4) !important; box-shadow: 0 0 60px rgba(245,166,35,0.1); }
+          .noise { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.02; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); }
         `}}/>
-
-        {/* Background glow */}
-        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse at 50% 30%, rgba(108,99,255,0.1) 0%, transparent 60%)' }} />
-
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '60px 24px', position: 'relative' }}>
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 52, animation: 'fadeUp 0.5s ease' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 11, background: 'linear-gradient(135deg, #1A1A2E, #6C63FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: 'white' }}>V</div>
-              <span style={{ fontWeight: 700, fontSize: 22, color: C.text }}>Vyra<span style={{ color: C.violet }}>Lens</span></span>
+        <div className="noise" />
+        <div style={{ position: 'fixed', top: '30%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 600, background: 'rgba(245,166,35,0.05)', borderRadius: '50%', filter: 'blur(120px)', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '80px 24px', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: 64, animation: 'fadeUp 0.5s ease' }}>
+            <div style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 32, color: '#fff' }}>
+              VYRA<span style={{ color: '#F5A623' }}>.</span>
             </div>
-            <h1 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 700, color: C.text, letterSpacing: '-1px', marginBottom: 14, lineHeight: 1.1 }}>
-              The world's most powerful<br />viral content platform
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(245,166,35,0.1)', border: '1px solid rgba(245,166,35,0.25)', color: '#F5A623', padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, marginBottom: 28 }}>
+              ✦ 30-Day Money-Back Guarantee
+            </div>
+            <h1 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 'clamp(32px, 5vw, 58px)', fontWeight: 700, color: '#fff', letterSpacing: '-0.025em', marginBottom: 18, lineHeight: 1.05 }}>
+              The viral content engine<br />that <span style={{ color: '#F5A623' }}>pays for itself.</span>
             </h1>
-            <p style={{ color: C.textSub, fontSize: 17, maxWidth: 480, margin: '0 auto', lineHeight: 1.65 }}>
-              One keyword. Every viral post across TikTok, Instagram, YouTube, and X. AI breakdown. Your script ready in seconds.
+            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 17, maxWidth: 500, margin: '0 auto', lineHeight: 1.65 }}>
+              One viral post discovered and replicated pays for months of subscription.
             </p>
           </div>
-
-          {/* Plans */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 32, animation: 'fadeUp 0.6s ease 0.1s both' }}>
-            {plans.map(plan => (
-              <div key={plan.id} className="plan-row"
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 48, animation: 'fadeUp 0.5s ease 0.1s both' }}>
+            {plans.map((plan) => (
+              <div key={plan.id} className={`pw-plan ${plan.highlight ? 'hl' : ''}`}
                 onClick={() => handlePlanClick(plan.id)}
-                style={{
-                  background: plan.highlight
-                    ? 'linear-gradient(135deg, rgba(108,99,255,0.18), rgba(108,99,255,0.06))'
-                    : C.surface,
-                  border: `1px solid ${plan.highlight ? C.violet : C.border}`,
-                  borderRadius: 18, padding: '28px 24px',
-                  position: 'relative',
-                }}>
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '36px 28px', position: 'relative' }}>
                 {plan.highlight && (
-                  <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: `linear-gradient(135deg, ${C.violet}, ${C.violetLight})`, color: 'white', fontSize: 10, fontWeight: 700, padding: '4px 14px', borderRadius: 100, whiteSpace: 'nowrap', letterSpacing: '0.1em' }}>
-                    MOST POPULAR
-                  </div>
+                  <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: '#F5A623', color: '#080808', fontSize: 11, fontWeight: 800, padding: '4px 18px', borderRadius: 20, whiteSpace: 'nowrap' as const, letterSpacing: '0.08em' }}>MOST POPULAR</div>
                 )}
-
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{plan.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
-                    <span style={{ fontSize: 44, fontWeight: 700, color: C.text, letterSpacing: '-2px' }}>${plan.price}</span>
-                    <span style={{ color: C.textSub, fontSize: 14 }}>/month</span>
-                  </div>
-                  <div style={{ fontSize: 13, color: C.textSub }}>{plan.desc}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 12 }}>{plan.name}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+                  <span style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 52, fontWeight: 700, color: plan.highlight ? '#F5A623' : '#fff', letterSpacing: '-0.03em', lineHeight: 1 }}>${plan.price}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 15 }}>/mo</span>
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-                  {plan.features.map((f, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: C.textSub }}>
-                      <span style={{ color: C.success, fontSize: 12 }}>✓</span> {f}
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 28, lineHeight: 1.5 }}>{plan.desc}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+                  {plan.features.map((f, j) => (
+                    <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
+                      <span style={{ color: '#F5A623' }}>✓</span> {f}
                     </div>
                   ))}
                 </div>
-
-                <div style={{
-                  width: '100%', padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-                  background: plan.highlight ? `linear-gradient(135deg, ${C.violet}, ${C.violetLight})` : 'transparent',
-                  border: plan.highlight ? 'none' : `1px solid ${C.border}`,
-                  color: plan.highlight ? 'white' : C.textSub,
-                  textAlign: 'center',
-                }}>
+                <div style={{ width: '100%', padding: '14px', borderRadius: 10, fontSize: 14, fontWeight: 700, background: plan.highlight ? '#F5A623' : 'rgba(255,255,255,0.06)', border: plan.highlight ? 'none' : '1px solid rgba(255,255,255,0.1)', color: plan.highlight ? '#080808' : 'rgba(255,255,255,0.7)', textAlign: 'center' as const }}>
                   Get {plan.name} →
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Trust signals */}
-          <div style={{ display: 'flex', gap: 32, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 24, animation: 'fadeUp 0.6s ease 0.2s both' }}>
-            {[
-              { icon: '🔒', text: 'Secure payment via Stripe' },
-              { icon: '↩️', text: '30-day money-back guarantee' },
-              { icon: '❌', text: 'Cancel anytime, no questions' },
-            ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textSub }}>
-                <span>{item.icon}</span> {item.text}
-              </div>
+          <div style={{ display: 'flex', gap: 40, justifyContent: 'center', flexWrap: 'wrap', animation: 'fadeUp 0.5s ease 0.2s both' }}>
+            {['🔒 Secure payment via Stripe', '↩️ 30-day money-back guarantee', '✕ Cancel anytime'].map((item, i) => (
+              <div key={i} style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{item}</div>
             ))}
-          </div>
-
-          <div style={{ textAlign: 'center' }}>
-            <button onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }}
-              style={{ background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-              Sign out
-            </button>
           </div>
         </div>
       </div>
     );
   }
+
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', fontFamily: "'DM Sans', sans-serif" }}>
@@ -534,7 +497,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
         {/* Logo */}
         <div style={{ padding: '20px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setSidebarOpen(!sidebarOpen)}>
           <div style={{ width: 36, height: 36, borderRadius: 9, background: 'linear-gradient(135deg, #1A1A2E, #6C63FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'white', flexShrink: 0 }}>V</div>
-          {sidebarOpen && <span style={{ fontWeight: 700, fontSize: 18, color: C.text, whiteSpace: 'nowrap' }}>Vyra<span style={{ color: C.violet }}>Lens</span></span>}
+          {sidebarOpen && <span style={{ fontWeight: 700, fontSize: 18, color: C.text, whiteSpace: 'nowrap' }}>VYRA<span style={{ color: '#F5A623' }}>.</span></span>}
         </div>
 
         {/* Nav */}
@@ -709,12 +672,12 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                               <span>{m.label}</span> <span style={{ color: C.text, fontWeight: 500 }}>{m.val}</span>
                             </div>
                           ))}
-                          {/* VyraScore */}
+                          {/* VYRA Score */}
                           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <div style={{ width: 40, height: 40, borderRadius: '50%', background: `conic-gradient(#6C63FF ${post.score}%, #1e1e3a 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <div style={{ width: 30, height: 30, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: C.violetLight }}>{post.score}</div>
                             </div>
-                            <span style={{ fontSize: 10, color: C.textSub }}>VyraScore</span>
+                            <span style={{ fontSize: 10, color: C.textSub }}>VYRA Score</span>
                           </div>
                         </div>
                       </div>
@@ -832,7 +795,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                             </div>
                             <div>
                               <label style={{ fontSize: 11, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Your Style (paste 1-3 of your best posts)</label>
-                              <textarea value={userStyle} onChange={e => setUserStyle(e.target.value)} rows={3} placeholder="Paste examples of your content so VyraLens can match your voice..."
+                              <textarea value={userStyle} onChange={e => setUserStyle(e.target.value)} rows={3} placeholder="Paste examples of your content so VYRA can match your voice..."
                                 style={{ width: '100%', padding: '10px 12px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif", resize: 'vertical' }} />
                             </div>
                             <button onClick={generateContent} disabled={generating}
@@ -893,7 +856,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                   </div>
                   <div style={{ fontSize: 13, color: C.textSub, marginBottom: 12 }}>"{item.hook}"</div>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {[item.platform, `${item.views} views`, `VyraScore ${item.score}`].map((tag, ti) => (
+                    {[item.platform, `${item.views} views`, `VYRA Score ${item.score}`].map((tag, ti) => (
                       <span key={ti} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 100, background: C.surfaceAlt, color: C.textSub }}>{tag}</span>
                     ))}
                   </div>
@@ -926,7 +889,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 11, color: C.violet, fontWeight: 600, marginBottom: 4 }}>{post.platform} · {post.type}</div>
                         <p style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{post.hook}</p>
-                        <div style={{ fontSize: 12, color: C.textSub, marginTop: 4 }}>{post.views} views · VyraScore {post.score}</div>
+                        <div style={{ fontSize: 12, color: C.textSub, marginTop: 4 }}>{post.views} views · VYRA Score {post.score}</div>
                       </div>
                       <button onClick={e => { e.stopPropagation(); setSavedPosts(prev => prev.filter(p => p.id !== post.id)); }}
                         style={{ background: 'transparent', border: 'none', color: C.textSub, cursor: 'pointer', fontSize: 16 }}>×</button>
@@ -1072,7 +1035,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
           <div style={{ padding: '32px', maxWidth: 800 }}>
             <div style={{ marginBottom: 32 }}>
               <h1 style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', marginBottom: 6 }}>Performance Predictor ⚡</h1>
-              <p style={{ color: C.textSub, fontSize: 15 }}>Paste your draft — get your VyraScore before you post</p>
+              <p style={{ color: C.textSub, fontSize: 15 }}>Paste your draft — get your VYRA Score before you post</p>
             </div>
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '28px' }}>
               <label style={{ fontSize: 12, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 10 }}>Your Draft Content</label>
