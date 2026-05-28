@@ -155,7 +155,17 @@ export default function Dashboard() {
         body: JSON.stringify({ keyword, platform: activePlatform, pageToken: nextPageToken, redditAfter }),
       });
       const data = await res.json();
-      setResults(prev => [...prev, ...(data.results || [])]);
+      // Merge new results with existing, re-sort by virality
+      setResults(prev => {
+        const combined = [...prev, ...(data.results || [])];
+        const seen = new Set<string>();
+        const unique = combined.filter(r => {
+          if (seen.has(r.id)) return false;
+          seen.add(r.id);
+          return true;
+        });
+        return unique.sort((a, b) => (b.rawScore || b.score) - (a.rawScore || a.score));
+      });
       setNextPageToken(data.nextPageToken || null);
       setRedditAfter(data.redditAfter || null);
       setHasMore(!!(data.nextPageToken || data.redditAfter));
@@ -441,7 +451,27 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
             {/* Platform filter */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
               {PLATFORMS.map(p => (
-                <button key={p.id} className="platform-tab" onClick={() => setActivePlatform(p.id)}
+                <button key={p.id} className="platform-tab" onClick={() => {
+                    setActivePlatform(p.id);
+                    if (keyword.trim()) {
+                      setResults([]);
+                      setNextPageToken(null);
+                      setRedditAfter(null);
+                      setSelectedPost(null);
+                      setSearching(true);
+                      fetch('/api/search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ keyword, platform: p.id }),
+                      }).then(r => r.json()).then(data => {
+                        setResults(data.results || []);
+                        setNextPageToken(data.nextPageToken || null);
+                        setRedditAfter(data.redditAfter || null);
+                        setHasMore(!!(data.nextPageToken || data.redditAfter));
+                        setSearching(false);
+                      }).catch(() => setSearching(false));
+                    }
+                  }}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: `1px solid ${activePlatform === p.id ? C.violet : C.border}`, background: activePlatform === p.id ? C.violetDim : 'transparent', color: activePlatform === p.id ? C.violetLight : C.textSub, fontSize: 13, fontWeight: activePlatform === p.id ? 600 : 400, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>
                   {p.icon} {p.label}
                 </button>
@@ -506,6 +536,13 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                         style={{ padding: '6px 10px', background: savedPosts.find(p => p.id === post.id) ? C.violetDim : 'transparent', border: `1px solid ${C.border}`, borderRadius: 7, color: savedPosts.find(p => p.id === post.id) ? C.violetLight : C.textSub, cursor: 'pointer', fontSize: 14, flexShrink: 0, transition: 'all 0.15s' }}>
                         🔖
                       </button>
+                      {(post.videoUrl || post.postUrl || post.viewOriginalUrl) && (
+                        <a href={post.videoUrl || post.viewOriginalUrl || post.postUrl} target="_blank" rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          style={{ padding: '6px 10px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 7, color: C.textSub, cursor: 'pointer', fontSize: 11, flexShrink: 0, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+                          ↗
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -539,8 +576,8 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                         <div style={{ fontSize: 11, color: C.textSub }}>{selectedPost.accountName}</div>
                         <div style={{ fontSize: 11, color: C.textSub }}>·</div>
                         <div style={{ fontSize: 11, color: C.textSub }}>{selectedPost.accountFollowers}</div>
-                        {(selectedPost.videoUrl || selectedPost.postUrl) && (
-                          <a href={selectedPost.videoUrl || selectedPost.postUrl} target="_blank" rel="noopener noreferrer"
+                        {(selectedPost.videoUrl || selectedPost.postUrl || selectedPost.viewOriginalUrl) && (
+                          <a href={selectedPost.videoUrl || selectedPost.viewOriginalUrl || selectedPost.postUrl} target="_blank" rel="noopener noreferrer"
                             style={{ fontSize: 11, color: C.violet, textDecoration: 'none', marginLeft: 'auto' }}>
                             View Original ↗
                           </a>
