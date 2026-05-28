@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const triggerRes = await fetch(
-      `https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_lk5ns7kz21pck8jpis&format=json&uncompressed_webhook=true`,
+      `https://api.brightdata.com/datasets/v3/trigger?dataset_id=gd_lk5ns7kz21pck8jpis&format=json`,
       {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${bdToken}`, 'Content-Type': 'application/json' },
