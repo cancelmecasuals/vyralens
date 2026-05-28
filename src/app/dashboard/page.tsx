@@ -81,6 +81,7 @@ export default function Dashboard() {
   const [searching, setSearching] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [analysis, setAnalysis] = useState('');
+  const [activeTab, setActiveTab] = useState('analysis');
   const [analyzing, setAnalyzing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatedScript, setGeneratedScript] = useState('');
@@ -128,6 +129,7 @@ export default function Dashboard() {
     setSelectedPost(post);
     setAnalysis('');
     setGeneratedScript('');
+    setActiveTab('analysis');
     setAnalyzing(true);
 
     const prompt = `You are a viral content strategist. Analyze this viral social media post and provide a detailed breakdown.
@@ -441,20 +443,21 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
 
                     {/* Tabs */}
                     <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}` }}>
-                      {['AI Analysis', 'Generate Content'].map((tab, ti) => {
-                        const active = ti === 0 ? !generatedScript : !!generatedScript;
+                      {['analysis', 'generate'].map((tab) => {
+                        const label = tab === 'analysis' ? '🧠 AI Analysis' : '✍️ Generate Content';
+                        const active = activeTab === tab;
                         return (
-                          <button key={tab} onClick={() => ti === 1 ? null : setGeneratedScript('')}
+                          <button key={tab} onClick={() => setActiveTab(tab)}
                             style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? C.violet : 'transparent'}`, color: active ? C.violetLight : C.textSub, fontSize: 13, fontWeight: active ? 600 : 400, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>
-                            {tab}
+                            {label}
                           </button>
                         );
                       })}
                     </div>
 
                     <div style={{ padding: '20px' }}>
-                      {/* Analysis */}
-                      {!generatedScript && (
+                      {/* Analysis Tab */}
+                      {activeTab === 'analysis' && (
                         <>
                           {analyzing && (
                             <div style={{ textAlign: 'center', padding: '30px 0' }}>
@@ -462,13 +465,19 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                               <p style={{ color: C.textSub, fontSize: 13 }}>Analyzing viral patterns...</p>
                             </div>
                           )}
+                          {!analyzing && !analysis && (
+                            <div style={{ textAlign: 'center', padding: '30px 0', color: C.textSub, fontSize: 13 }}>
+                              Click a post on the left to get the AI viral analysis
+                            </div>
+                          )}
                           {analysis && (
-                            <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: 20 }}>{analysis}</div>
+                            <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{analysis}</div>
                           )}
                         </>
                       )}
 
-                      {/* Generate Content */}
+                      {/* Generate Content Tab */}
+                      {activeTab === 'generate' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {!generatedScript && (
                           <>
@@ -518,6 +527,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                           </div>
                         )}
                       </div>
+                      )}
                     </div>
                   </div>
                 </div>
