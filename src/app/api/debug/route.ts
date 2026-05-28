@@ -2,60 +2,65 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const rapidKey = process.env.RAPIDAPI_KEY?.replace(/[^\x00-\x7F]/g, '').trim();
+  const sessionId = process.env.INSTAGRAM_SESSION_ID?.trim();
+  const csrfToken = process.env.INSTAGRAM_CSRF_TOKEN?.trim();
+  const dsUserId = process.env.INSTAGRAM_DS_USER_ID?.trim();
   const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
   const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  // Test hashtag_posts endpoint which might return more posts
-  const endpoints = [
-    `hashtag_section?tag=${tag}&section=top`,
-    `hashtag_section?tag=${tag}&section=recent`,
-    `hashtag_posts?tag=${tag}`,
-    `hashtag_posts?hashtag=${tag}`,
-    `hashtag_posts?name=${tag}`,
-  ];
-
   const results: any = {};
-  for (const ep of endpoints) {
-    try {
-      const url = `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/${ep}`;
-      const res = await fetch(url, {
-        headers: {
-          'x-rapidapi-key': rapidKey || '',
-          'x-rapidapi-host': 'instagram-api-fast-reliable-data-scraper.p.rapidapi.com',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-      const text = await res.text();
-      const data = JSON.parse(text);
-      
-      // Count total medias across all sections
-      const sections = data?.data?.sections || data?.sections || data?.data || [];
-      let totalMedias = 0;
-      let maxLikes = 0;
-      
-      if (Array.isArray(sections)) {
-        for (const s of sections) {
-          const medias = s?.layout_content?.medias || [];
-          totalMedias += medias.length;
-          for (const m of medias) {
-            const likes = m?.media?.like_count || m?.like_count || 0;
-            if (likes > maxLikes) maxLikes = likes;
-          }
-        }
-      }
-      
-      results[ep.split('?')[0]] = { 
-        status: res.status, 
-        totalSections: Array.isArray(sections) ? sections.length : 0,
-        totalMedias,
-        maxLikes,
-        topKeys: Object.keys(data?.data || data || {}).slice(0, 8),
-      };
-    } catch (e: any) {
-      results[ep.split('?')[0]] = { error: e.message };
-    }
-  }
 
-  return NextResponse.json(results);
+  // Test 1: web_info endpoint
+  try {
+    const url1 = `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${tag}`;
+    const res1 = await fetch(url1, {
+      headers: {
+        'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
+        'X-CSRFToken': csrfToken || '',
+        'X-IG-App-ID': '936619743392459',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    const data1 = await res1.json();
+    const topPosts = data1?.data?.hashtag?.edge_hashtag_to_top_posts?.edges || [];
+    results['web_info'] = {
+      status: res1.status,
+      topPostsCount: topPosts.length,
+      firstPostLikes: topPosts[0]?.node?.edge_liked_by?.count || 0,
+      sample: topPosts[0]?.node ? { likes: topPosts[0].node.edge_liked_by?.count, shortcode: topPosts[0].node.shortcode } : null,
+    };
+  } catch (e: any) { results['web_info'] = { error: e.message }; }
+
+  // Test 2: sections endpoint
+  try {
+    const url2 = `https://www.instagram.com/api/v1/tags/${tag}/sections/?tab=top&page=0&surface=grid`;
+    const res2 = await fetch(url2, {
+      headers: {
+        'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
+        'X-CSRFToken': csrfToken || '',
+        'X-IG-App-ID': '936619743392459',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    const data2 = await res2.json();
+    const sections = data2?.sections || [];
+    let totalMedias = 0;
+    let maxLikes = 0;
+    for (const s of sections) {
+      for (const m of (s?.layout_content?.medias || [])) {
+        totalMedias++;
+        const likes = m?.media?.like_count || 0;
+        if (likes > maxLikes) maxLikes = likes;
+      }
+    }
+    results['sections'] = { status: res2.status, sections: sections.length, totalMedias, maxLikes };
+  } catch (e: any) { results['sections'] = { error: e.message }; }
+
+  return NextResponse.json({ hasSession: !!sessionId, results });
 }
