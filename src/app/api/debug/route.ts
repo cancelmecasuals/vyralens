@@ -39,26 +39,37 @@ export async function GET(req: NextRequest) {
     try { data = JSON.parse(text); } catch { data = text.slice(0, 500); }
 
     const items = Array.isArray(data) ? data : [];
-    const sorted = items
-      .filter((i: any) => (i.likesCount || i.likes || i.like_count || 0) > 0)
+    const firstItem = items[0] || {};
+    
+    // Different actors return posts differently
+    let posts: any[] = [];
+    if (firstItem.topPosts) posts = firstItem.topPosts;
+    else if (firstItem.posts) posts = firstItem.posts;
+    else posts = items;
+
+    const sorted = posts
+      .filter((i: any) => (i.likesCount || i.likes || i.like_count || i.likeCount || 0) > 0)
       .sort((a: any, b: any) => {
-        const aL = a.likesCount || a.likes || a.like_count || 0;
-        const bL = b.likesCount || b.likes || b.like_count || 0;
+        const aL = a.likesCount || a.likes || a.like_count || a.likeCount || 0;
+        const bL = b.likesCount || b.likes || b.like_count || b.likeCount || 0;
         return bL - aL;
       });
 
-    const maxLikes = sorted[0] ? (sorted[0].likesCount || sorted[0].likes || sorted[0].like_count || 0) : 0;
+    const maxLikes = sorted[0] ? (sorted[0].likesCount || sorted[0].likes || sorted[0].like_count || sorted[0].likeCount || 0) : 0;
 
     return NextResponse.json({
       actor, status: res.status,
       totalItems: items.length,
+      topPostsFound: posts.length,
       itemsWithLikes: sorted.length,
       maxLikes,
-      sampleKeys: items[0] ? Object.keys(items[0]).slice(0, 15) : [],
+      firstItemKeys: Object.keys(firstItem).slice(0, 15),
+      samplePostKeys: posts[0] ? Object.keys(posts[0]).slice(0, 15) : [],
       top5: sorted.slice(0, 5).map((i: any) => ({
-        likes: i.likesCount || i.likes || i.like_count,
+        likes: i.likesCount || i.likes || i.like_count || i.likeCount,
         url: i.url || i.postUrl || i.shortCode,
-        caption: (i.caption || i.text || '').slice(0, 60),
+        caption: (i.caption || i.text || i.description || '').slice(0, 60),
+        views: i.videoViewCount || i.viewCount || i.views,
       })),
     });
   } catch (e: any) {
