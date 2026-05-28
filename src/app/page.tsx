@@ -1,461 +1,312 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
-const C = {
-  bg: '#060612',
-  surface: '#0d0d1f',
-  surfaceAlt: '#13132a',
-  border: '#1e1e3a',
-  borderHi: '#2a2a4a',
-  violet: '#6C63FF',
-  violetLight: '#9d97ff',
-  violetDim: '#3d3880',
-  navy: '#1A1A2E',
-  gold: '#C9A87C',
-  text: '#EDEAE4',
-  textSub: '#7A7690',
-  textDim: '#2a2a4a',
-  success: '#5BB88A',
-  error: '#E05C5C',
-};
-
-const PLATFORMS = [
-  { name: 'TikTok', icon: '🎵', color: '#ff0050' },
-  { name: 'Instagram', icon: '📸', color: '#E1306C' },
-  { name: 'YouTube', icon: '▶️', color: '#FF0000' },
-  { name: 'X / Twitter', icon: '✖️', color: '#1DA1F2' },
+const TICKER = [
+  { platform: 'TikTok', likes: '42.3M views', hook: 'I did 100 push-ups every day for a year...' },
+  { platform: 'Instagram', likes: '1.4M likes', hook: 'This one habit changed everything...' },
+  { platform: 'YouTube', likes: '8.9M views', hook: 'I bought my first property with $0 down...' },
+  { platform: 'TikTok', likes: '31.2M views', hook: 'Dermatologist reacts to your routine...' },
+  { platform: 'Instagram', likes: '2.1M likes', hook: 'Nobody talks about this side of success...' },
+  { platform: 'YouTube', likes: '12.4M views', hook: 'How I made $10K in 30 days...' },
+  { platform: 'TikTok', likes: '67.8M views', hook: 'Stop waiting for the right moment...' },
+  { platform: 'Instagram', likes: '890K likes', hook: 'The money secret they never teach you...' },
 ];
 
-const FEATURES = [
-  {
-    icon: '🔍',
-    title: 'One Keyword. Every Platform.',
-    desc: 'Type a single keyword and instantly surface the most viral content from TikTok, Instagram, YouTube, Reddit, and X — all ranked by our proprietary VyraScore.',
-  },
-  {
-    icon: '🧠',
-    title: 'AI Viral Deconstruction',
-    desc: 'Every piece of content is automatically broken down — hook analysis, structure, emotional triggers, posting time, why it worked. Know the formula, not just the result.',
-  },
-  {
-    icon: '✍️',
-    title: 'One-Click Content Generator',
-    desc: 'Choose your niche, platform, and format. VyraLens rewrites any viral post into your voice — TikTok script, YouTube video, X thread, Instagram caption. Done in seconds.',
-  },
-  {
-    icon: '📈',
-    title: 'Trending Now Feed',
-    desc: 'A live dashboard showing what\'s exploding RIGHT NOW across every platform — before you even think to search for it. Open VyraLens and know instantly.',
-  },
-  {
-    icon: '🕵️',
-    title: 'Competitor Spy Mode',
-    desc: 'Track any account on any platform. Get instant alerts when a competitor posts something that goes viral — then get your own version ready before the wave passes.',
-  },
-  {
-    icon: '📅',
-    title: 'Content Calendar',
-    desc: 'Generate a script, schedule it. Plan your entire content week from one dashboard. Never stare at a blank screen wondering what to post again.',
-  },
-  {
-    icon: '🎯',
-    title: 'Viral Pattern Library',
-    desc: 'A curated vault of proven viral formats — the reveal hook, the unpopular opinion, the before/after. Real examples, real data, one-click adaptation.',
-  },
-  {
-    icon: '⚡',
-    title: 'Performance Predictor',
-    desc: 'Paste your draft before you post. VyraLens scores it against our viral database and tells you exactly what to improve — before it\'s too late.',
-  },
-];
+const PC: Record<string, string> = { TikTok: '#FF2D55', Instagram: '#C13584', YouTube: '#FF0000' };
 
-const PRICING = [
-  {
-    name: 'Creator',
-    price: 39,
-    desc: 'For solo creators getting serious',
-    features: ['3 platforms', '50 searches/month', 'VyraScore on all results', 'AI hook analysis', 'Script generator', 'Save up to 50 posts', 'Viral Pattern Library'],
-    cta: 'Start Creating',
-    highlight: false,
-  },
-  {
-    name: 'Pro',
-    price: 99,
-    desc: 'For creators who want to dominate',
-    features: ['All 5 platforms', 'Unlimited searches', 'Trending Now feed', 'Competitor tracker (5 accounts)', 'Content calendar', 'Performance predictor', 'Voice learning (paste your style)', 'Priority support'],
-    cta: 'Go Pro',
-    highlight: true,
-  },
-  {
-    name: 'Agency',
-    price: 199,
-    desc: 'For teams and agencies',
-    features: ['Everything in Pro', '5 team seats', 'White-label scripts', '25 competitor accounts', 'Weekly email digest', 'API access', 'Dedicated account manager'],
-    cta: 'Scale Your Agency',
-    highlight: false,
-  },
-];
+function FAQ({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div onClick={() => setOpen(!open)} style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '24px 0', cursor: 'pointer' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 16, fontWeight: 600, color: open ? '#F5A623' : 'rgba(255,255,255,0.85)', transition: 'color 0.2s' }}>
+        <span>{q}</span>
+        <span style={{ color: '#F5A623', fontSize: 22, transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>+</span>
+      </div>
+      {open && <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginTop: 14 }}>{a}</p>}
+    </div>
+  );
+}
 
-const TESTIMONIALS = [
-  { name: 'Sarah K.', role: 'Real Estate Agent', avatar: 'SK', quote: 'I went from 200 views per post to 40K in three weeks. VyraLens showed me exactly what was working in my niche and I just followed the formula.', platform: 'TikTok' },
-  { name: 'Marcus T.', role: 'Social Media Manager', avatar: 'MT', quote: 'I manage 8 clients. VyraLens replaced three other tools I was paying for. The competitor tracker alone is worth 10x the price.', platform: 'Instagram' },
-  { name: 'Priya R.', role: 'YouTuber', avatar: 'PR', quote: 'The AI deconstruction feature is insane. It told me exactly why my competitors\' videos worked — hook, structure, pacing. My last video hit 500K.', platform: 'YouTube' },
-];
+export default function Landing() {
+  const router = useRouter();
+  const [tick, setTick] = useState(0);
+  const [typed, setTyped] = useState('');
+  const words = ['fitness', 'real estate', 'manifesting', 'skincare', 'side hustle', 'mindset'];
+  const wi = useRef(0); const ci = useRef(0); const del = useRef(false);
 
-const FAQS = [
-  { q: 'Does VyraLens pull real live data?', a: 'Yes — VyraLens connects to live data feeds from all five platforms. Results are updated continuously. You\'re seeing what\'s going viral right now, not last week.' },
-  { q: 'What platforms are supported?', a: 'TikTok, Instagram, YouTube, Reddit, and X (Twitter). All five in one search. More platforms coming soon.' },
-  { q: 'How does the AI know what makes content go viral?', a: 'VyraLens analyzes engagement velocity, hook structure, posting time, share-to-view ratio, comment sentiment, and hundreds of other signals — then Claude AI synthesizes it into a plain-English breakdown you can actually use.' },
-  { q: 'Can I cancel anytime?', a: 'Yes. No contracts, no tricks. Cancel from your account dashboard in one click. You keep access until the end of your billing period.' },
-  { q: 'Is there a money-back guarantee?', a: 'Yes — all plans come with a 30-day money-back guarantee. If you\'re not happy for any reason, we\'ll refund you in full. No questions asked.' },
-];
-
-export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [email, setEmail] = useState('');
-  const heroRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { const t = setInterval(() => setTick(p => p - 1), 25); return () => clearInterval(t); }, []);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll);
+    const run = () => {
+      const w = words[wi.current];
+      if (!del.current) {
+        if (ci.current <= w.length) { setTyped(w.slice(0, ci.current)); ci.current++; }
+        else setTimeout(() => { del.current = true; }, 2000);
+      } else {
+        if (ci.current > 0) { ci.current--; setTyped(w.slice(0, ci.current)); }
+        else { del.current = false; wi.current = (wi.current + 1) % words.length; }
+      }
+    };
+    const t = setTimeout(run, del.current ? 45 : 110);
+    return () => clearTimeout(t);
+  }, [typed]);
 
-    // Scroll reveal
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          (e.target as HTMLElement).style.opacity = '1';
-          (e.target as HTMLElement).style.transform = 'translateY(0)';
-        }
-      });
-    }, { threshold: 0.1 });
-    setTimeout(() => {
-      document.querySelectorAll('.rv').forEach(el => obs.observe(el));
-    }, 100);
-
-    return () => { window.removeEventListener('scroll', onScroll); obs.disconnect(); };
-  }, []);
+  const totalW = TICKER.length * 340;
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: "'DM Sans', sans-serif" }}>
-      <style dangerouslySetInnerHTML={{__html:`
-        @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-        @keyframes float { 0%,100% { transform:translateY(0px); } 50% { transform:translateY(-12px); } }
-        @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes glow { 0%,100% { box-shadow: 0 0 20px rgba(108,99,255,0.3); } 50% { box-shadow: 0 0 40px rgba(108,99,255,0.6); } }
-        .rv { opacity:0; transform:translateY(32px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2,0,0,1); }
-        .btn-primary { background: linear-gradient(135deg, #6C63FF, #9d97ff); color: white; border: none; padding: 14px 32px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; letter-spacing: 0.02em; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(108,99,255,0.4); }
-        .btn-outline { background: transparent; color: #EDEAE4; border: 1px solid #1e1e3a; padding: 13px 28px; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
-        .btn-outline:hover { border-color: #6C63FF; color: #9d97ff; }
-        .feature-card:hover { border-color: #6C63FF; transform: translateY(-4px); }
-        .pricing-card:hover { transform: translateY(-4px); }
-        .faq-item:hover { border-color: #2a2a4a; }
-        .platform-pill:hover { border-color: #6C63FF; background: rgba(108,99,255,0.1); }
-        .nav-link:hover { color: #9d97ff; }
-        .testimonial-card:hover { border-color: #6C63FF; }
-      `}}/>
+    <div style={{ background: '#080808', minHeight: '100vh', color: '#fff', fontFamily: "'Satoshi', 'DM Sans', sans-serif", overflowX: 'hidden' }}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=clash-display@700,600&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        .btn-g{background:#F5A623;color:#080808;border:none;padding:15px 34px;border-radius:7px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;transition:all 0.2s;letter-spacing:0.01em}
+        .btn-g:hover{background:#FFB73D;transform:translateY(-1px);box-shadow:0 8px 30px rgba(245,166,35,0.3)}
+        .btn-o{background:transparent;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);padding:14px 30px;border-radius:7px;font-size:15px;cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;transition:all 0.2s}
+        .btn-o:hover{border-color:rgba(255,255,255,0.4);color:#fff}
+        .card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;transition:all 0.25s}
+        .card:hover{background:rgba(255,255,255,0.05);border-color:rgba(245,166,35,0.25);transform:translateY(-2px)}
+        .plan{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:36px 28px;position:relative;cursor:pointer;transition:all 0.25s}
+        .plan:hover{transform:translateY(-4px)}
+        .plan.hot{background:rgba(245,166,35,0.06);border-color:rgba(245,166,35,0.35);box-shadow:0 0 60px rgba(245,166,35,0.08)}
+        .tag{display:inline-flex;align-items:center;gap:6px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.2);color:#F5A623;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
+        .nav-a{color:rgba(255,255,255,0.45);text-decoration:none;font-size:14px;font-weight:500;transition:color 0.2s}
+        .nav-a:hover{color:#fff}
+        .cursor{display:inline-block;width:2px;height:1em;background:#F5A623;vertical-align:middle;margin-left:1px;animation:blink 1s infinite}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+        .ticker-item{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 20px;min-width:310px;margin-right:14px;flex-shrink:0}
+        .feat-cell{background:#0D0D0D;padding:36px 30px;transition:background 0.2s}
+        .feat-cell:hover{background:#111}
+        .noise{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+        @media(max-width:768px){.grid3{grid-template-columns:1fr!important}.grid4{grid-template-columns:1fr 1fr!important}.hide-m{display:none!important}}
+      `}} />
 
-      {/* ── NAV ── */}
-      <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: scrolled ? 'rgba(6,6,18,0.95)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? `1px solid ${C.border}` : 'none',
-        transition: 'all 0.3s ease',
-        padding: '0 32px', height: 64,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #1A1A2E, #6C63FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white' }}>V</div>
-          <span style={{ fontWeight: 700, fontSize: 18, color: C.text }}>
-            <span style={{ color: C.text }}>Vyra</span><span style={{ color: C.violet }}>Lens</span>
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-          {['Features', 'Pricing', 'FAQ'].map(item => (
-            <a key={item} href={`#${item.toLowerCase()}`} className="nav-link"
-              style={{ color: C.textSub, textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }}>
-              {item}
-            </a>
-          ))}
+      <div className="noise" />
+
+      {/* Nav */}
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(8,8,8,0.88)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.06)', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
+          <div style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>VYRA<span style={{ color: '#F5A623' }}>.</span></div>
+          <div className="hide-m" style={{ display: 'flex', gap: 28 }}>
+            <a href="#features" className="nav-a">Features</a>
+            <a href="#pricing" className="nav-a">Pricing</a>
+            <a href="#faq" className="nav-a">FAQ</a>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/login"><button className="btn-outline" style={{ padding: '8px 20px', fontSize: 14 }}>Log In</button></Link>
-          <Link href="/signup"><button className="btn-primary" style={{ padding: '8px 20px', fontSize: 14 }}>Get Started</button></Link>
+          <button className="btn-o" style={{ padding: '9px 20px', fontSize: 14 }} onClick={() => router.push('/login')}>Sign In</button>
+          <button className="btn-g" style={{ padding: '9px 20px', fontSize: 14 }} onClick={() => router.push('/signup')}>Get Started</button>
         </div>
       </nav>
 
-      {/* ── HERO ── */}
-      <section ref={heroRef} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', position: 'relative', overflow: 'hidden' }}>
-        {/* BG glow */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)', width: 800, height: 800, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(108,99,255,0.12) 0%, transparent 70%)', filter: 'blur(40px)' }} />
-          <div style={{ position: 'absolute', top: '10%', right: '10%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(201,168,124,0.06) 0%, transparent 70%)', filter: 'blur(30px)' }} />
-        </div>
-
-        <div style={{ maxWidth: 860, textAlign: 'center', position: 'relative', animation: 'fadeUp 0.8s ease' }}>
-          {/* Badge */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(108,99,255,0.1)', border: `1px solid rgba(108,99,255,0.3)`, borderRadius: 100, padding: '6px 16px', marginBottom: 32, fontSize: 13, color: C.violetLight }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.violet, animation: 'pulse 2s infinite' }} />
-            Live data from 5 platforms · Updated in real-time
+      {/* Hero */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '160px 40px 80px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 100, left: -200, width: 700, height: 700, background: 'rgba(245,166,35,0.05)', borderRadius: '50%', filter: 'blur(120px)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div className="tag" style={{ marginBottom: 28 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#F5A623', display: 'inline-block', animation: 'blink 2s infinite' }} />
+            Live Intelligence Feed
           </div>
-
-          <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 'clamp(42px, 7vw, 88px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-2px', marginBottom: 28, color: C.text }}>
-            See What Goes Viral<br />
-            <span style={{ background: 'linear-gradient(135deg, #6C63FF, #9d97ff, #C9A87C)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              Before Everyone Else
-            </span>
+          <h1 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 'clamp(52px, 8vw, 92px)', fontWeight: 700, lineHeight: 0.97, letterSpacing: '-0.035em', marginBottom: 28, maxWidth: 860 }}>
+            Find what's going<br />
+            <span style={{ color: '#F5A623' }}>viral</span> before<br />
+            everyone else does.
           </h1>
-
-          <p style={{ fontSize: 'clamp(17px, 2.5vw, 21px)', color: C.textSub, lineHeight: 1.7, marginBottom: 48, maxWidth: 620, margin: '0 auto 48px' }}>
-            One keyword search. Every viral post across TikTok, Instagram, YouTube, Reddit, and X. AI-powered breakdown of why it worked. Your version generated in seconds.
+          <p style={{ fontSize: 19, color: 'rgba(255,255,255,0.45)', maxWidth: 500, lineHeight: 1.65, marginBottom: 44 }}>
+            Search any keyword. See the most viral posts across TikTok, Instagram, and YouTube — then let AI break down exactly why they worked.
           </p>
-
-          {/* CTA */}
-          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
-            <Link href="/signup">
-              <button className="btn-primary" style={{ fontSize: 16, padding: '16px 40px', animation: 'glow 3s infinite' }}>
-                Get Started — 30-Day Guarantee
-              </button>
-            </Link>
-            <a href="#features">
-              <button className="btn-outline" style={{ fontSize: 16, padding: '16px 32px' }}>
-                See How It Works ↓
-              </button>
-            </a>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 64, flexWrap: 'wrap' }}>
+            <button className="btn-g" style={{ fontSize: 16, padding: '16px 38px' }} onClick={() => router.push('/signup')}>Start for Free →</button>
+            <button className="btn-o" style={{ fontSize: 16, padding: '15px 30px' }} onClick={() => router.push('/login')}>Sign In</button>
+            <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 20 }}>30-day money-back guarantee</span>
           </div>
 
-          {/* Platform pills */}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {PLATFORMS.map(p => (
-              <div key={p.name} className="platform-pill" style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`,
-                borderRadius: 100, padding: '6px 14px', fontSize: 13, color: C.textSub,
-                transition: 'all 0.2s', cursor: 'default',
-              }}>
-                <span>{p.icon}</span> {p.name}
+          {/* Demo card */}
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: '22px 24px', maxWidth: 660, boxShadow: '0 0 40px rgba(245,166,35,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+              <div style={{ background: 'rgba(245,166,35,0.12)', borderRadius: 8, padding: '8px 10px', fontSize: 16 }}>🔍</div>
+              <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '10px 16px', fontSize: 15, display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: 'rgba(255,255,255,0.3)', marginRight: 6 }}>Searching:</span>
+                <span>{typed}</span><span className="cursor" />
               </div>
-            ))}
-          </div>
-
-          {/* Social proof */}
-          <div style={{ marginTop: 56, display: 'flex', gap: 40, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {[
-              { v: '2.4M+', l: 'Viral posts analyzed' },
-              { v: '98%', l: 'Prediction accuracy' },
-              { v: '12K+', l: 'Active creators' },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.5px' }}>{s.v}</div>
-                <div style={{ fontSize: 13, color: C.textSub, marginTop: 2 }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section id="features" style={{ padding: '100px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <div className="rv" style={{ textAlign: 'center', marginBottom: 64 }}>
-          <div style={{ fontSize: 12, color: C.violet, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 16 }}>Everything You Need</div>
-          <h2 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 700, letterSpacing: '-1px', color: C.text, marginBottom: 16 }}>
-            Built for creators who are<br />serious about growth
-          </h2>
-          <p style={{ color: C.textSub, fontSize: 18, maxWidth: 540, margin: '0 auto' }}>
-            Every feature exists to get you from "what do I post?" to "that just went viral."
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-          {FEATURES.map((f, i) => (
-            <div key={i} className="rv feature-card" style={{
-              background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 16, padding: '28px 24px',
-              transition: 'all 0.25s',
-              transitionDelay: `${i * 50}ms`,
-            }}>
-              <div style={{ fontSize: 32, marginBottom: 16 }}>{f.icon}</div>
-              <h3 style={{ fontSize: 17, fontWeight: 600, color: C.text, marginBottom: 10, letterSpacing: '-0.3px' }}>{f.title}</h3>
-              <p style={{ fontSize: 14, color: C.textSub, lineHeight: 1.7 }}>{f.desc}</p>
+              <div style={{ background: '#F5A623', color: '#080808', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>Analyze →</div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section style={{ padding: '80px 24px', background: C.surface, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-          <div className="rv" style={{ marginBottom: 56 }}>
-            <div style={{ fontSize: 12, color: C.violet, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 16 }}>How It Works</div>
-            <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 700, letterSpacing: '-1px', color: C.text }}>
-              From zero to viral in 60 seconds
-            </h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24 }}>
             {[
-              { step: '01', title: 'Type a keyword', desc: 'Enter any topic, niche, or trend. VyraLens searches every platform simultaneously.' },
-              { step: '02', title: 'See what\'s viral', desc: 'Browse ranked results with VyraScore, engagement data, and posting time analysis.' },
-              { step: '03', title: 'Understand why', desc: 'Click any post. AI breaks down the hook, structure, emotion, and viral formula.' },
-              { step: '04', title: 'Create your version', desc: 'Choose your platform and format. Get your custom script in your voice. Post. Grow.' },
-            ].map((s, i) => (
-              <div key={i} className="rv" style={{ padding: '28px 20px', textAlign: 'center', transitionDelay: `${i * 80}ms` }}>
-                <div style={{ fontSize: 48, fontWeight: 700, color: C.violetDim, marginBottom: 12, letterSpacing: '-2px' }}>{s.step}</div>
-                <h3 style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>{s.title}</h3>
-                <p style={{ fontSize: 14, color: C.textSub, lineHeight: 1.65 }}>{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section style={{ padding: '100px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <div className="rv" style={{ textAlign: 'center', marginBottom: 56 }}>
-          <div style={{ fontSize: 12, color: C.violet, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 16 }}>Real Results</div>
-          <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 700, letterSpacing: '-1px', color: C.text }}>
-            Creators who switched to VyraLens
-          </h2>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {TESTIMONIALS.map((t, i) => (
-            <div key={i} className="rv testimonial-card" style={{
-              background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 16, padding: '28px 24px',
-              transition: 'all 0.25s', transitionDelay: `${i * 80}ms`,
-            }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0 }}>{t.avatar}</div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 15, color: C.text }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: C.textSub }}>{t.role} · {t.platform}</div>
+              { views: '42.3M', likes: '8.1M', platform: 'TikTok', hook: "I did 100 push-ups every day for a year. Here's what happened..." },
+              { views: '18.7M', likes: '3.2M', platform: 'Instagram', hook: "The fitness secret trainers don't want you to know" },
+              { views: '9.4M', likes: '1.1M', platform: 'YouTube', hook: "Why everything you know about working out is wrong" },
+            ].map((item, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: i < 2 ? 8 : 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 8, background: `${PC[item.platform]}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                  {item.platform === 'TikTok' ? '🎵' : item.platform === 'Instagram' ? '📸' : '▶️'}
                 </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.hook}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>👁 {item.views} · ❤️ {item.likes}</div>
+                </div>
+                <div style={{ background: `${PC[item.platform]}20`, color: PC[item.platform], fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, flexShrink: 0 }}>{item.platform}</div>
               </div>
-              <p style={{ fontSize: 15, color: C.textSub, lineHeight: 1.7, fontStyle: 'italic' }}>"{t.quote}"</p>
-              <div style={{ display: 'flex', gap: 2, marginTop: 16 }}>
-                {[1,2,3,4,5].map(s => <span key={s} style={{ color: C.gold, fontSize: 14 }}>★</span>)}
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Ticker */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.015)', padding: '18px 0', overflow: 'hidden', marginBottom: 100 }}>
+        <div style={{ display: 'flex', transform: `translateX(${tick % totalW}px)`, width: totalW * 2 }}>
+          {[...TICKER, ...TICKER].map((item, i) => (
+            <div key={i} className="ticker-item">
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ background: `${PC[item.platform]}20`, color: PC[item.platform], fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>{item.platform}</span>
+                <span style={{ color: '#F5A623', fontSize: 12, fontWeight: 700 }}>{item.likes}</span>
               </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>{item.hook}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px 100px' }}>
+        <div className="grid4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          {[['2.4B+','Posts Analyzed'],['180+','Niches Covered'],['94%','Accuracy Rate'],['30s','Avg Script Time']].map(([v,l],i) => (
+            <div key={i} className="card" style={{ padding: '28px', textAlign: 'center' }}>
+              <div style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 42, fontWeight: 700, color: '#F5A623', letterSpacing: '-0.02em', marginBottom: 6 }}>{v}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{l}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── PRICING ── */}
-      <section id="pricing" style={{ padding: '100px 24px', background: C.surface, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div className="rv" style={{ textAlign: 'center', marginBottom: 56 }}>
-            <div style={{ fontSize: 12, color: C.violet, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 16 }}>Pricing</div>
-            <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 700, letterSpacing: '-1px', color: C.text, marginBottom: 12 }}>
-              Start free. Scale when you grow.
-            </h2>
-            <p style={{ color: C.textSub, fontSize: 17 }}>30-day money-back guarantee on all plans. Cancel anytime.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-            {PRICING.map((p, i) => (
-              <div key={i} className="rv pricing-card" style={{
-                background: p.highlight ? 'linear-gradient(135deg, rgba(108,99,255,0.15), rgba(108,99,255,0.05))' : C.bg,
-                border: `1px solid ${p.highlight ? C.violet : C.border}`,
-                borderRadius: 20, padding: '36px 28px',
-                position: 'relative', transition: 'all 0.25s',
-                transitionDelay: `${i * 80}ms`,
-              }}>
-                {p.highlight && (
-                  <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #6C63FF, #9d97ff)', color: 'white', fontSize: 11, fontWeight: 700, padding: '4px 16px', borderRadius: 100, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-                    MOST POPULAR
+      {/* Features */}
+      <section id="features" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px 120px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          <div className="tag" style={{ marginBottom: 20 }}>Features</div>
+          <h2 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.08, marginBottom: 16 }}>
+            Everything you need to create<br />content that <span style={{ color: '#F5A623' }}>wins</span>
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 17, maxWidth: 460, margin: '0 auto' }}>Stop guessing. Start knowing exactly what your audience wants.</p>
+        </div>
+        <div className="grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, background: 'rgba(255,255,255,0.04)', borderRadius: 20, overflow: 'hidden' }}>
+          {[
+            ['🔎','Viral Discovery Engine','Search any keyword and surface the most viral posts across TikTok, Instagram, YouTube, and Reddit. Sorted by real engagement.'],
+            ['🧠','AI Breakdown','Click any viral post and get a deep analysis of the hook, structure, pacing, emotional triggers, and why it performed.'],
+            ['✍️','Script Generator','Generate your own version of any viral post — in your voice, your niche, your style — in under 30 seconds.'],
+            ['📈','Trend Velocity','See which content is exploding right now vs what peaked months ago. Catch trends before they go mainstream.'],
+            ['🎯','Niche Intelligence','Deep keyword and hashtag expansion. We map the entire content graph of your niche automatically.'],
+            ['🔄','Always Growing','Our engine indexes millions of posts every day. Your library of viral content grows automatically in the background.'],
+          ].map(([icon, title, desc], i) => (
+            <div key={i} className="feat-cell">
+              <div style={{ fontSize: 30, marginBottom: 16 }}>{icon}</div>
+              <h3 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 10, color: '#fff' }}>{title}</h3>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.38)', lineHeight: 1.7 }}>{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px 120px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div className="tag" style={{ marginBottom: 20 }}>Testimonials</div>
+          <h2 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 700, letterSpacing: '-0.025em' }}>
+            Creators are already <span style={{ color: '#F5A623' }}>winning</span>
+          </h2>
+        </div>
+        <div className="grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
+          {[
+            ['Sarah K.','Fitness Creator · 280K followers',"I found a post with 8M views in my niche that I had no idea existed. Used the AI breakdown to make my version. It hit 2.1M views in 4 days."],
+            ['Marcus T.','Real Estate Agent · Content Creator',"My competitors have no idea how I keep going viral. I'm just using VYRA to find what's working and doing my version. It's not even close."],
+            ['Priya M.','Skincare Brand · 95K followers',"The script generator alone is worth 10x the price. I went from 3 hours writing scripts to 3 minutes. And they actually perform better."],
+          ].map(([name, role, quote], i) => (
+            <div key={i} className="card" style={{ padding: '28px' }}>
+              <div style={{ color: '#F5A623', fontSize: 14, marginBottom: 14, letterSpacing: 3 }}>★★★★★</div>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 18, fontStyle: 'italic' }}>"{quote}"</p>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{name}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{role}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px 120px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          <div className="tag" style={{ marginBottom: 20 }}>Pricing</div>
+          <h2 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.08, marginBottom: 14 }}>
+            Simple, transparent <span style={{ color: '#F5A623' }}>pricing</span>
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16 }}>30-day money-back guarantee on all plans. No questions asked.</p>
+        </div>
+        <div className="grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
+          {[
+            { name: 'Creator', price: '$39', desc: 'For solo creators getting serious', features: ['All platforms', '500 searches/month', 'AI viral breakdown', 'Script generator', '30-day guarantee'], hot: false },
+            { name: 'Pro', price: '$99', desc: 'For creators who want to dominate', features: ['Unlimited searches', 'All platforms', 'Advanced AI analysis', 'Voice-matched scripts', 'Priority support', '30-day guarantee'], hot: true },
+            { name: 'Agency', price: '$199', desc: 'For teams managing multiple brands', features: ['Everything in Pro', '10 team seats', 'White-label reports', 'API access', 'Dedicated support', '30-day guarantee'], hot: false },
+          ].map((plan, i) => (
+            <div key={i} className={`plan ${plan.hot ? 'hot' : ''}`} onClick={() => router.push('/signup')}>
+              {plan.hot && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#F5A623', color: '#080808', fontSize: 10, fontWeight: 800, padding: '4px 16px', borderRadius: 20, whiteSpace: 'nowrap', letterSpacing: '0.08em' }}>MOST POPULAR</div>}
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>{plan.name}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+                <span style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 52, fontWeight: 700, color: plan.hot ? '#F5A623' : '#fff', letterSpacing: '-0.03em', lineHeight: 1 }}>{plan.price}</span>
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 15 }}>/mo</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', marginBottom: 26, lineHeight: 1.5 }}>{plan.desc}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginBottom: 30 }}>
+                {plan.features.map((f, j) => (
+                  <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
+                    <span style={{ color: '#F5A623' }}>✓</span> {f}
                   </div>
-                )}
-                <div style={{ fontSize: 13, color: C.textSub, marginBottom: 4 }}>{p.name}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
-                  <span style={{ fontSize: 48, fontWeight: 700, color: C.text, letterSpacing: '-2px' }}>${p.price}</span>
-                  <span style={{ color: C.textSub, fontSize: 14 }}>/mo</span>
-                </div>
-                <div style={{ fontSize: 13, color: C.textSub, marginBottom: 28 }}>{p.desc}</div>
-                <Link href="/signup">
-                  <button style={{
-                    width: '100%', padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", marginBottom: 28,
-                    background: p.highlight ? 'linear-gradient(135deg, #6C63FF, #9d97ff)' : 'transparent',
-                    border: p.highlight ? 'none' : `1px solid ${C.border}`,
-                    color: p.highlight ? 'white' : C.textSub,
-                    transition: 'all 0.2s',
-                  }}>
-                    {p.cta}
-                  </button>
-                </Link>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {p.features.map((f, fi) => (
-                    <div key={fi} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: C.textSub }}>
-                      <span style={{ color: C.success, flexShrink: 0, marginTop: 1 }}>✓</span>
-                      {f}
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FAQ ── */}
-      <section id="faq" style={{ padding: '100px 24px', maxWidth: 740, margin: '0 auto' }}>
-        <div className="rv" style={{ textAlign: 'center', marginBottom: 56 }}>
-          <div style={{ fontSize: 12, color: C.violet, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 16 }}>FAQ</div>
-          <h2 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 700, letterSpacing: '-1px', color: C.text }}>
-            Questions answered
-          </h2>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {FAQS.map((faq, i) => (
-            <div key={i} className="rv faq-item" onClick={() => setOpenFaq(openFaq === i ? null : i)}
-              style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.2s', transitionDelay: `${i * 50}ms` }}>
-              <div style={{ padding: '18px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-                <span style={{ fontSize: 15, fontWeight: 500, color: C.text }}>{faq.q}</span>
-                <span style={{ color: C.violet, fontSize: 20, transform: openFaq === i ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>+</span>
+              <div style={{ width: '100%', padding: '13px', borderRadius: 9, fontSize: 14, fontWeight: 700, background: plan.hot ? '#F5A623' : 'rgba(255,255,255,0.06)', border: plan.hot ? 'none' : '1px solid rgba(255,255,255,0.1)', color: plan.hot ? '#080808' : 'rgba(255,255,255,0.65)', textAlign: 'center' }}>
+                Get {plan.name} →
               </div>
-              {openFaq === i && (
-                <div style={{ padding: '0 22px 18px', fontSize: 14, color: C.textSub, lineHeight: 1.75 }}>{faq.a}</div>
-              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── CTA BANNER ── */}
-      <section style={{ padding: '80px 24px', margin: '0 24px 60px', borderRadius: 24, background: 'linear-gradient(135deg, rgba(108,99,255,0.15), rgba(108,99,255,0.05))', border: `1px solid ${C.border}`, textAlign: 'center', maxWidth: 1100, marginLeft: 'auto', marginRight: 'auto' }}>
-        <div className="rv">
-          <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 700, letterSpacing: '-1px', color: C.text, marginBottom: 16 }}>
-            Ready to see what goes viral?
-          </h2>
-          <p style={{ color: C.textSub, fontSize: 17, marginBottom: 36, maxWidth: 480, margin: '0 auto 36px' }}>
-            Join 12,000+ creators who use VyraLens to stay ahead of every trend.
-          </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email"
-              style={{ padding: '13px 20px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "'DM Sans', sans-serif", width: 280, outline: 'none' }} />
-            <Link href={`/signup${email ? `?email=${encodeURIComponent(email)}` : ''}`}>
-              <button className="btn-primary" style={{ fontSize: 15, padding: '13px 28px' }}>Get Started →</button>
-            </Link>
+      {/* FAQ */}
+      <section id="faq" style={{ maxWidth: 740, margin: '0 auto', padding: '0 40px 120px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div className="tag" style={{ marginBottom: 20 }}>FAQ</div>
+          <h2 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 700, letterSpacing: '-0.025em' }}>Questions? <span style={{ color: '#F5A623' }}>Answered.</span></h2>
+        </div>
+        {[
+          ['How is this different from searching TikTok or Instagram directly?','VYRA searches millions of posts across all platforms simultaneously and ranks by actual engagement — not what the algorithm shows you. You see what\'s truly viral, not what\'s being promoted.'],
+          ['Do I need to be a content creator?','No. VYRA is used by solo creators, marketing agencies, real estate agents, brand managers, and anyone who needs content that performs.'],
+          ['How accurate is the AI analysis?','Our AI is trained on millions of viral posts and identifies the exact patterns — hook structure, emotional triggers, pacing, and CTAs — that make content explode.'],
+          ['What platforms do you cover?','TikTok, Instagram (Reels, Posts, Carousels), YouTube, and Reddit. More platforms coming.'],
+          ['Can I cancel anytime?','Yes. Cancel anytime with one click. And if you\'re not happy in the first 30 days, we\'ll refund you — no questions asked.'],
+        ].map(([q, a], i) => <FAQ key={i} q={q as string} a={a as string} />)}
+      </section>
+
+      {/* Final CTA */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px 140px' }}>
+        <div style={{ background: 'rgba(245,166,35,0.05)', border: '1px solid rgba(245,166,35,0.18)', borderRadius: 24, padding: '80px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 500, height: 500, background: 'rgba(245,166,35,0.07)', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none' }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <h2 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.08, marginBottom: 18 }}>
+              Stop creating content<br />that <span style={{ color: '#F5A623' }}>nobody sees.</span>
+            </h2>
+            <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.45)', marginBottom: 40, maxWidth: 440, margin: '0 auto 40px' }}>
+              Join creators who already know what goes viral before they hit record.
+            </p>
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="btn-g" style={{ fontSize: 17, padding: '18px 44px' }} onClick={() => router.push('/signup')}>Get Started Free →</button>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>✓ 30-day money-back guarantee</span>
+            </div>
           </div>
-          <p style={{ color: C.textDim, fontSize: 12, marginTop: 16 }}>30-day money-back guarantee · Cancel anytime · Cancel anytime</p>
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ padding: '40px 24px', borderTop: `1px solid ${C.border}`, textAlign: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #1A1A2E, #6C63FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white' }}>V</div>
-          <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>Vyra<span style={{ color: C.violet }}>Lens</span></span>
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '36px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1200, margin: '0 auto', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>VYRA<span style={{ color: '#F5A623' }}>.</span></div>
+        <div style={{ display: 'flex', gap: 28 }}>
+          {['Privacy','Terms','Support'].map(l => <a key={l} href="#" className="nav-a">{l}</a>)}
         </div>
-        <div style={{ display: 'flex', gap: 24, justifyContent: 'center', marginBottom: 20 }}>
-          {['Privacy Policy', 'Terms of Service', 'Contact'].map(item => (
-            <a key={item} href="#" style={{ color: C.textSub, fontSize: 13, textDecoration: 'none' }}>{item}</a>
-          ))}
-        </div>
-        <p style={{ color: C.textDim, fontSize: 12 }}>© 2026 VyraLens. All rights reserved.</p>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>© 2026 VYRA. All rights reserved.</div>
       </footer>
     </div>
   );
