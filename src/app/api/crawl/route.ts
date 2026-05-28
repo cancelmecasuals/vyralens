@@ -39,8 +39,8 @@ export async function GET(req: NextRequest) {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
   };
 
-  // STEP 1: Collect shortcodes from Instagram
-  if (step === '1') {
+  // AUTO: Do both steps automatically
+  if (step === 'auto' || step === '1') {
     const shortcodes: string[] = [];
     const seen = new Set<string>();
 
@@ -64,9 +64,65 @@ export async function GET(req: NextRequest) {
       } catch { continue; }
     }
 
+    if (step === '1') {
+      return NextResponse.json({
+        keyword, step: 1, shortcodesFound: shortcodes.length, shortcodes,
+        nextStep: `Run step 2: /api/crawl?secret=${secret}&keyword=${keyword}&step=2&codes=${shortcodes.join(',')}`,
+      });
+    }
+
+    // Auto mode — continue to step 2
+    if (!shortcodes.length) return NextResponse.json({ error: 'No shortcodes found' });
+
+    const bdUrls = shortcodes.slice(0, 100).map(code => ({ url: `https://www.instagram.com/p/${code}/` }));
+    const bdRes = await fetch(
+      `https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_lk5ns7kz21pck8jpis&format=json`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${bdToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(bdUrls),
+        signal: AbortSignal.timeout(55000),
+      }
+    );
+    if (!bdRes.ok) return NextResponse.json({ error: `BD error: ${bdRes.status}`, shortcodesFound: shortcodes.length });
+    const posts = await bdRes.json();
+    if (!Array.isArray(posts)) return NextResponse.json({ error: 'BD bad response', shortcodesFound: shortcodes.length });
+
+    const sorted = posts.filter((p: any) => (p.likes || p.num_likes || 0) > 0)
+      .sort((a: any, b: any) => (b.likes || b.num_likes || 0) - (a.likes || a.num_likes || 0));
+
+    const { supabaseAdmin } = await import('@/lib/supabase');
+    const sb = supabaseAdmin();
+    let saved = 0;
+
+    for (const post of sorted) {
+      const likes = post.likes || post.num_likes || 0;
+      const comments = post.num_comments || post.comments || 0;
+      const views = post.video_view_count || post.video_play_count || post.views || 0;
+      const rawScore = views > 0 ? views : likes * 15;
+      const isVideo = post.content_type === 'video' || !!post.video_url;
+      const caption = post.description || post.caption || '';
+      const postUrl = post.url || null;
+      const shortcode = post.shortcode || postUrl?.split('/p/')?.[1]?.split('/')?.[0] || postUrl?.split('/reel/')?.[1]?.split('/')?.[0] || '';
+      await sb.from('instagram_posts').upsert({
+        id: post.post_id || shortcode || `bd-${saved}`,
+        keyword: tag, platform: 'Instagram',
+        hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
+        caption, username: post.user_posted || '', full_name: post.user_posted || '',
+        like_count: likes, comment_count: comments, view_count: views,
+        raw_score: rawScore, media_type: isVideo ? 'video' : 'image',
+        shortcode, post_url: postUrl,
+        thumbnail: post.thumbnail || post.display_url || '',
+        taken_at: post.date_posted ? new Date(post.date_posted).toISOString() : null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+      saved++;
+    }
+
     return NextResponse.json({
-      keyword, step: 1, shortcodesFound: shortcodes.length, shortcodes,
-      nextStep: `Run step 2: /api/crawl?secret=${secret}&keyword=${keyword}&step=2&codes=${shortcodes.join(',')}`,
+      keyword, shortcodesFound: shortcodes.length, bdPostsReturned: posts.length, saved,
+      topLikes: sorted[0]?.likes || sorted[0]?.num_likes || 0,
+      top5: sorted.slice(0, 5).map((p: any) => ({ likes: p.likes || p.num_likes, username: p.user_posted, url: p.url })),
     });
   }
 
