@@ -73,6 +73,8 @@ function generateMockResults(keyword: string, platform: string) {
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [checkingSub, setCheckingSub] = useState(true);
   const [activeNav, setActiveNav] = useState('search');
   const [keyword, setKeyword] = useState('');
   const [activePlatform, setActivePlatform] = useState('all');
@@ -107,7 +109,13 @@ export default function Dashboard() {
   useEffect(() => {
     import('@/lib/supabase').then(m => m.supabase.auth.getUser()).then(({ data: { user } }) => {
       if (!user) router.push('/login');
-      else setUser(user);
+      else {
+        setUser(user);
+        fetch(`/api/stripe/subscription?userId=${user.id}`)
+          .then(r => r.json())
+          .then(data => { setSubscription(data.subscription); setCheckingSub(false); })
+          .catch(() => setCheckingSub(false));
+      }
     });
 
     // Generate trending data on mount
@@ -372,6 +380,53 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
     </div>
   );
 
+  // Paywall — show upgrade screen if no active subscription
+  if (!checkingSub && !subscription) {
+    return (
+      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif", padding: 24 }}>
+        <style dangerouslySetInnerHTML={{__html:`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}}/>
+        <div style={{ maxWidth: 540, width: '100%', textAlign: 'center' }}>
+          <div style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg, #1A1A2E, #6C63FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: 'white', margin: '0 auto 24px' }}>V</div>
+          <h1 style={{ fontSize: 32, fontWeight: 700, color: C.text, letterSpacing: '-0.5px', marginBottom: 12 }}>
+            Choose your plan
+          </h1>
+          <p style={{ color: C.textSub, fontSize: 16, marginBottom: 40, lineHeight: 1.65 }}>
+            Get full access to VyraLens — find viral content, decode why it works, and generate your version in seconds.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
+            {[
+              { id: 'creator', name: 'Creator', price: '$39/mo', desc: 'Solo creators', highlight: false },
+              { id: 'pro', name: 'Pro', price: '$99/mo', desc: 'Serious growth — most popular', highlight: true },
+              { id: 'agency', name: 'Agency', price: '$199/mo', desc: 'Teams & agencies', highlight: false },
+            ].map(plan => (
+              <button key={plan.id} onClick={async () => {
+                const res = await fetch('/api/stripe/checkout', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ planId: plan.id, userId: user.id, userEmail: user.email }),
+                });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+              }}
+                style={{ width: '100%', padding: '16px 20px', background: plan.highlight ? 'linear-gradient(135deg, rgba(108,99,255,0.2), rgba(108,99,255,0.08))' : C.surface, border: `1px solid ${plan.highlight ? C.violet : C.border}`, borderRadius: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{plan.name}</div>
+                  <div style={{ fontSize: 13, color: C.textSub }}>{plan.desc}</div>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: plan.highlight ? C.violetLight : C.text }}>{plan.price}</div>
+              </button>
+            ))}
+          </div>
+          <p style={{ color: C.textSub, fontSize: 13 }}>30-day money-back guarantee · Cancel anytime</p>
+          <button onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }}
+            style={{ marginTop: 16, background: 'transparent', border: 'none', color: C.textSub, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', fontFamily: "'DM Sans', sans-serif" }}>
       <style dangerouslySetInnerHTML={{__html:`
@@ -409,12 +464,26 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
           ))}
         </nav>
 
-        {/* User + logout */}
         <div style={{ padding: '12px 10px', borderTop: `1px solid ${C.border}` }}>
           {sidebarOpen && (
-            <div style={{ padding: '8px 12px', marginBottom: 8, fontSize: 12, color: C.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ padding: '8px 12px', marginBottom: 4, fontSize: 12, color: C.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.email}
             </div>
+          )}
+          {subscription && (
+            <button onClick={async () => {
+              const res = await fetch('/api/stripe/portal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerId: subscription.stripe_customer_id }),
+              });
+              const data = await res.json();
+              if (data.url) window.location.href = data.url;
+            }} className="nav-item"
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSub, fontSize: 14, fontFamily: "'DM Sans', sans-serif", width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', marginBottom: 4 }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>💳</span>
+              {sidebarOpen && 'Manage Billing'}
+            </button>
           )}
           <button onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }} className="nav-item"
             style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSub, fontSize: 14, fontFamily: "'DM Sans', sans-serif", width: '100%', whiteSpace: 'nowrap', overflow: 'hidden' }}>
