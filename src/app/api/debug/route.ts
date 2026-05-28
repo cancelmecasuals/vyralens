@@ -2,38 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const sessionId = process.env.INSTAGRAM_SESSION_ID?.trim();
-  const csrfToken = process.env.INSTAGRAM_CSRF_TOKEN?.trim();
-  const dsUserId = process.env.INSTAGRAM_DS_USER_ID?.trim();
+  const apifyKey = process.env.APIFY_API_KEY?.trim();
   const username = req.nextUrl.searchParams.get('username') || 'gabybernstein';
 
-  const headers: Record<string, string> = {
-    'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
-    'X-CSRFToken': csrfToken || '',
-    'X-IG-App-ID': '936619743392459',
-    'X-Requested-With': 'XMLHttpRequest',
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Referer': 'https://www.instagram.com/',
-    'Accept': '*/*',
-  };
-
-  const endpoints = [
-    `https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`,
-    `https://www.instagram.com/${username}/?__a=1&__d=dis`,
-    `https://www.instagram.com/api/v1/users/lookup/?username=${username}`,
-  ];
-
-  const results: any = {};
-  for (const url of endpoints) {
-    const key = url.split('/').slice(4).join('/').split('?')[0];
-    try {
-      const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-      const text = await res.text();
-      results[key] = { status: res.status, length: text.length, preview: text.slice(0, 200) };
-    } catch (e: any) {
-      results[key] = { error: e.message };
-    }
+  try {
+    const url = `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${apifyKey}&timeout=60&memory=512&maxItems=5`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usernames: [username],
+        resultsType: 'posts',
+        resultsLimit: 5,
+      }),
+      signal: AbortSignal.timeout(65000),
+    });
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = text.slice(0, 500); }
+    return NextResponse.json({
+      status: res.status,
+      itemCount: Array.isArray(data) ? data.length : 0,
+      firstItem: Array.isArray(data) && data[0] ? {
+        likesCount: data[0].likesCount,
+        type: data[0].type,
+        ownerUsername: data[0].ownerUsername,
+        shortCode: data[0].shortCode,
+        hasCaption: !!data[0].caption,
+      } : data,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message });
   }
-
-  return NextResponse.json(results);
 }
