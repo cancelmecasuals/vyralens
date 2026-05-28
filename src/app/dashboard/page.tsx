@@ -163,9 +163,13 @@ Summarize the replicable viral formula in 2-3 sentences a creator can use immedi
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      setAnalysis(data.result || 'Analysis complete.');
-    } catch {
-      setAnalysis('Unable to analyze at this moment. Please try again.');
+      if (data.error) {
+        setAnalysis(`⚠️ Error: ${data.error}\n\nCheck that your ANTHROPIC_API_KEY is set correctly in Vercel environment variables.`);
+      } else {
+        setAnalysis(data.result || 'No analysis returned.');
+      }
+    } catch (err: any) {
+      setAnalysis(`⚠️ Connection error: ${err.message}\n\nPlease try again.`);
     }
     setAnalyzing(false);
   };
