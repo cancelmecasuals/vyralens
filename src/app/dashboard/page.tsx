@@ -82,6 +82,7 @@ export default function Dashboard() {
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [analysis, setAnalysis] = useState('');
   const [activeTab, setActiveTab] = useState('analysis');
+  const [transcribeStatus, setTranscribeStatus] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatedScript, setGeneratedScript] = useState('');
@@ -144,13 +145,14 @@ export default function Dashboard() {
     setAnalysis('');
     setGeneratedScript('');
     setActiveTab('analysis');
+    setTranscribeStatus('');
     setAnalyzing(true);
 
-    // Step 1 — try to get transcript for video content
+    // Step 1 — transcribe video content
     let transcriptSection = '';
     if (post.mediaType === 'video' && (post.videoId || post.videoUrl)) {
+      setTranscribeStatus('🎙️ Transcribing audio...');
       try {
-        setAnalysis('🎙️ Transcribing audio...');
         const tRes = await fetch('/api/transcribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -163,21 +165,22 @@ export default function Dashboard() {
         const tData = await tRes.json();
         if (tData.transcript) {
           transcriptSection = `\nACTUAL VIDEO TRANSCRIPT:\n"${tData.transcript}"\n`;
+          setTranscribeStatus('✅ Transcribed — analyzing...');
+        } else {
+          setTranscribeStatus('🧠 Analyzing from metadata...');
         }
-      } catch { /* continue without transcript */ }
+      } catch {
+        setTranscribeStatus('🧠 Analyzing from metadata...');
+      }
+    } else if (post.mediaType === 'text') {
+      setTranscribeStatus('📖 Reading full post text...');
+      if (post.selfText) transcriptSection = `\nFULL POST TEXT:\n"${post.selfText}"\n`;
+      if (post.description) transcriptSection += `\nDESCRIPTION: ${post.description}`;
     }
 
-    // Step 2 — for text content (Reddit, X) use the full text
-    if (post.mediaType === 'text' && post.selfText) {
-      transcriptSection = `\nFULL POST TEXT:\n"${post.selfText}"\n`;
-    }
-    if (post.description) {
-      transcriptSection += `\nDESCRIPTION: ${post.description}`;
-    }
+    setTranscribeStatus('🧠 Running viral analysis...');
 
-    setAnalysis('🧠 Analyzing viral patterns...');
-
-    const prompt = `You are a world-class viral content strategist. Analyze this real viral ${post.platform} post with deep expertise.
+    const prompt = `You are a world-class viral content strategist. Analyze this real viral ${post.platform} post.
 
 POST DETAILS:
 Title/Hook: "${post.hook}"
@@ -188,13 +191,13 @@ Posted: ${post.postedTime}
 VyraScore: ${post.score}/100
 ${transcriptSection}
 
-Provide a detailed viral analysis with these exact sections:
+Provide a detailed viral analysis:
 
 🪝 HOOK ANALYSIS
 Why does this hook stop the scroll? What specific psychological trigger does it use?
 
 📐 CONTENT STRUCTURE
-Break down the exact structure — opening, middle, close. What keeps people watching/reading?
+Break down the exact structure — opening, middle, close.
 
 🧠 VIRAL TRIGGERS
 List the specific emotional and psychological triggers. Why do people share this?
@@ -212,12 +215,14 @@ The replicable viral formula in 2-3 sentences any creator can use immediately.`;
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
+      setTranscribeStatus('');
       if (data.error) {
         setAnalysis(`⚠️ Error: ${data.error}`);
       } else {
         setAnalysis(data.result || 'No analysis returned.');
       }
     } catch (err: any) {
+      setTranscribeStatus('');
       setAnalysis(`⚠️ Connection error: ${err.message}`);
     }
     setAnalyzing(false);
@@ -488,7 +493,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                           <div style={{ fontSize: 11, color: C.violet, fontWeight: 600, marginBottom: 4 }}>{selectedPost.platform} · {selectedPost.type}</div>
                           <p style={{ fontSize: 14, fontWeight: 500, color: C.text, lineHeight: 1.5 }}>"{selectedPost.hook}"</p>
                         </div>
-                        <button onClick={() => { setSelectedPost(null); setAnalysis(''); setGeneratedScript(''); }}
+                        <button onClick={() => { setSelectedPost(null); setAnalysis(''); setGeneratedScript(''); setTranscribeStatus(''); }}
                           style={{ background: 'transparent', border: 'none', color: C.textSub, cursor: 'pointer', fontSize: 18, flexShrink: 0, padding: '0 0 0 10px' }}>×</button>
                       </div>
                       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -525,7 +530,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                           {analyzing && (
                             <div style={{ textAlign: 'center', padding: '30px 0' }}>
                               <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${C.border}`, borderTop: `2px solid ${C.violet}`, animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                              <p style={{ color: C.textSub, fontSize: 13 }}>{analysis || 'Analyzing...'}</p>
+                              <p style={{ color: C.violet, fontSize: 13, fontWeight: 500 }}>{transcribeStatus || 'Analyzing...'}</p>
                             </div>
                           )}
                           {!analyzing && !analysis && (
