@@ -83,6 +83,7 @@ export default function Dashboard() {
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [redditAfter, setRedditAfter] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [analysis, setAnalysis] = useState('');
   const [activeTab, setActiveTab] = useState('analysis');
@@ -128,19 +129,20 @@ export default function Dashboard() {
     setNextPageToken(null);
     setRedditAfter(null);
     setHasMore(false);
+    setCurrentPage(0);
     try {
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, platform: activePlatform }),
+        body: JSON.stringify({ keyword, platform: activePlatform, page: 0 }),
       });
       const data = await res.json();
       setResults(data.results || []);
       setNextPageToken(data.nextPageToken || null);
       setRedditAfter(data.redditAfter || null);
-      setHasMore(!!(data.nextPageToken || data.redditAfter));
+      setHasMore(data.hasMore !== false);
     } catch {
-      setResults(generateMockResults(keyword, activePlatform));
+      setHasMore(true);
     }
     setSearching(false);
   };
@@ -148,27 +150,25 @@ export default function Dashboard() {
   const loadMore = async () => {
     if (loadingMore || !keyword.trim()) return;
     setLoadingMore(true);
+    const nextPage = currentPage + 1;
     try {
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, platform: activePlatform, pageToken: nextPageToken, redditAfter }),
+        body: JSON.stringify({ keyword, platform: activePlatform, pageToken: nextPageToken, redditAfter, page: nextPage }),
       });
       const data = await res.json();
-      // Merge new results with existing, re-sort by virality
       setResults(prev => {
         const combined = [...prev, ...(data.results || [])];
         const seen = new Set<string>();
-        const unique = combined.filter(r => {
-          if (seen.has(r.id)) return false;
-          seen.add(r.id);
-          return true;
-        });
-        return unique.sort((a, b) => (b.rawScore || b.score) - (a.rawScore || a.score));
+        return combined
+          .filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; })
+          .sort((a, b) => (b.rawScore || b.score * 10000) - (a.rawScore || a.score * 10000));
       });
       setNextPageToken(data.nextPageToken || null);
       setRedditAfter(data.redditAfter || null);
-      setHasMore(!!(data.nextPageToken || data.redditAfter));
+      setHasMore(data.hasMore !== false);
+      setCurrentPage(nextPage);
     } catch { }
     setLoadingMore(false);
   };
@@ -458,16 +458,18 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                       setNextPageToken(null);
                       setRedditAfter(null);
                       setSelectedPost(null);
+                      setCurrentPage(0);
+                      setHasMore(false);
                       setSearching(true);
                       fetch('/api/search', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ keyword, platform: p.id }),
+                        body: JSON.stringify({ keyword, platform: p.id, page: 0 }),
                       }).then(r => r.json()).then(data => {
                         setResults(data.results || []);
                         setNextPageToken(data.nextPageToken || null);
                         setRedditAfter(data.redditAfter || null);
-                        setHasMore(!!(data.nextPageToken || data.redditAfter));
+                        setHasMore(data.hasMore !== false);
                         setSearching(false);
                       }).catch(() => setSearching(false));
                     }
@@ -547,13 +549,14 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                   </div>
                 ))}
 
-                {/* Load More */}
+                {/* Load More — always available */}
                 {results.length > 0 && (
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ textAlign: 'center', padding: '24px 0' }}>
                     <button onClick={loadMore} disabled={loadingMore}
-                      style={{ padding: '12px 32px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 10, color: loadingMore ? C.textDim : C.textSub, fontSize: 14, fontWeight: 500, cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}>
-                      {loadingMore ? '⟳ Loading more...' : '↓ Load More Results'}
+                      style={{ padding: '13px 40px', background: loadingMore ? 'transparent' : `linear-gradient(135deg, rgba(108,99,255,0.15), rgba(108,99,255,0.05))`, border: `1px solid ${loadingMore ? C.border : C.violet}`, borderRadius: 10, color: loadingMore ? C.textSub : C.violetLight, fontSize: 14, fontWeight: 500, cursor: loadingMore ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}>
+                      {loadingMore ? '⟳ Loading more...' : '↓ Load More Viral Content'}
                     </button>
+                    <div style={{ fontSize: 11, color: C.textDim, marginTop: 8 }}>{results.length} posts loaded</div>
                   </div>
                 )}
               </div>

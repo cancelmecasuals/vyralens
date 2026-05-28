@@ -7,6 +7,55 @@ const formatNum = (n: number) => {
   return n.toString();
 };
 
+const MOCK_HOOKS = [
+  'Nobody talks about this [keyword] secret',
+  'Hot take: everything you know about [keyword] is wrong',
+  'I tried [keyword] for 30 days — here\'s what happened',
+  'The [keyword] strategy nobody is teaching',
+  'POV: You finally understand [keyword]',
+  '5 [keyword] mistakes everyone makes',
+  'This [keyword] hack changed everything for me',
+  'Stop doing this with [keyword] immediately',
+  'Why your [keyword] isn\'t working (the real fix)',
+  'The truth about [keyword] they don\'t want you to know',
+  'I made $10K with [keyword] — here\'s exactly how',
+  'What nobody tells you about [keyword]',
+  'The [keyword] method that actually works in 2026',
+  'How I went from zero to 100K with [keyword]',
+  'The biggest [keyword] lie you\'ve been told',
+  'Do this ONE thing for [keyword] and watch what happens',
+  '[keyword] is changing — here\'s what you need to know',
+  'I tested every [keyword] strategy so you don\'t have to',
+  'The [keyword] secret that top creators hide',
+  'Why most people fail at [keyword] (and how to not)',
+];
+
+function generateMockPage(keyword: string, platform: string, page: number) {
+  const name = platform === 'tiktok' ? 'TikTok' : platform === 'instagram' ? 'Instagram' : platform === 'x' ? 'X / Twitter' : platform === 'youtube' ? 'YouTube' : platform === 'reddit' ? 'Reddit' : 'TikTok';
+  const emoji = platform === 'tiktok' ? '🎵' : platform === 'instagram' ? '📸' : platform === 'x' ? '✖️' : platform === 'youtube' ? '▶️' : '🔴';
+
+  return MOCK_HOOKS.map((hookTemplate, i) => {
+    const hook = hookTemplate.replace(/\[keyword\]/g, keyword);
+    const baseViews = Math.max(50000, Math.floor(4000000 / (page * 0.8 + 1)) + Math.floor(Math.random() * 500000));
+    const score = Math.min(99, Math.max(50, Math.floor(90 - (page * 3) - (i * 0.5) + Math.random() * 8)));
+    return {
+      id: `${platform}-mock-p${page}-${i}`,
+      platform: name, hook,
+      accountName: `@creator_${page * 20 + i}`,
+      accountFollowers: `${Math.floor(Math.random() * 400 + 10)}K followers`,
+      thumbnail: '', thumbnailEmoji: emoji,
+      views: formatNum(baseViews),
+      likes: formatNum(Math.floor(baseViews * 0.08)),
+      comments: formatNum(Math.floor(baseViews * 0.01)),
+      shares: formatNum(Math.floor(baseViews * 0.02)),
+      score, rawScore: baseViews,
+      postedTime: `${Math.floor(Math.random() * 30 + 1)} days ago`,
+      type: ['Reveal Hook', 'Unpopular Opinion', 'Before & After', 'List Hook', 'Value Hook'][i % 5],
+      mediaType: 'video',
+    };
+  });
+}
+
 async function searchYouTube(keyword: string, pageToken?: string) {
   const apiKey = process.env.YOUTUBE_API_KEY?.replace(/[^\x00-\x7F]/g, '').trim();
   if (!apiKey) return { results: [], nextPageToken: null };
@@ -35,29 +84,23 @@ async function searchYouTube(keyword: string, pageToken?: string) {
         const views = parseInt(stats.viewCount || '0');
         const likes = parseInt(stats.likeCount || '0');
         const comments = parseInt(stats.commentCount || '0');
-        const engagementRate = views > 0 ? ((likes + comments) / views * 100) : 0;
-        // VyraScore based on views + engagement
-        const vyraScore = Math.min(99, Math.max(50, Math.round(
-          Math.log10(Math.max(views, 1)) * 12 + engagementRate * 3
-        )));
+        const engagement = views > 0 ? ((likes + comments) / views * 100) : 0;
+        const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(views, 1)) * 12 + engagement * 3)));
         return {
           id: item.id.videoId, platform: 'YouTube',
           hook: item.snippet.title,
           description: item.snippet.description?.slice(0, 300) || '',
-          accountName: `@${item.snippet.channelTitle}`,
-          accountFollowers: '',
-          thumbnail: item.snippet.thumbnails?.medium?.url || '',
-          thumbnailEmoji: '▶️',
+          accountName: `@${item.snippet.channelTitle}`, accountFollowers: '',
+          thumbnail: item.snippet.thumbnails?.medium?.url || '', thumbnailEmoji: '▶️',
           views: formatNum(views), likes: formatNum(likes),
           comments: formatNum(comments), shares: formatNum(Math.round(likes * 0.3)),
-          score: vyraScore, rawScore: views + (engagementRate * 100000),
+          score: vyraScore, rawScore: views,
           postedTime: new Date(item.snippet.publishedAt).toLocaleDateString(),
           type: 'YouTube Video', videoId: item.id.videoId,
           videoUrl: `https://www.youtube.com/watch?v=${item.id.videoId}`,
           mediaType: 'video',
         };
       });
-
     return { results, nextPageToken: searchData.nextPageToken || null };
   } catch (err) { console.error('YouTube error:', err); return { results: [], nextPageToken: null }; }
 }
@@ -66,32 +109,25 @@ async function searchReddit(keyword: string, after?: string) {
   const urls = [
     `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=top&t=year&limit=50${after ? `&after=${after}` : ''}&raw_json=1`,
     `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=top&t=all&limit=50&raw_json=1`,
-    `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=relevance&t=all&limit=50&raw_json=1`,
   ];
-
   for (const url of urls) {
     try {
       const res = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json',
-          'Accept-Language': 'en-US,en;q=0.9',
         },
         signal: AbortSignal.timeout(12000),
       });
-
-      if (!res.ok) { console.log('Reddit non-ok:', res.status, url); continue; }
+      if (!res.ok) continue;
       const text = await res.text();
-      if (!text || text.trim().startsWith('<')) { console.log('Reddit HTML response'); continue; }
-
+      if (!text || text.trim().startsWith('<')) continue;
       let data: any;
-      try { data = JSON.parse(text); } catch (e) { console.log('Reddit parse error'); continue; }
-
+      try { data = JSON.parse(text); } catch { continue; }
       const children = data?.data?.children;
-      if (!children?.length) { console.log('Reddit no children'); continue; }
-
+      if (!children?.length) continue;
       const posts = children
-        .filter((p: any) => p.data?.title && p.data?.score >= 1)
+        .filter((p: any) => p.data?.title)
         .map((post: any) => {
           const p = post.data;
           const score = p.score || 0;
@@ -100,71 +136,33 @@ async function searchReddit(keyword: string, after?: string) {
             id: `reddit-${p.id}`, platform: 'Reddit',
             hook: p.title,
             description: p.selftext?.slice(0, 400) || '',
-            accountName: `u/${p.author}`,
-            accountFollowers: `r/${p.subreddit}`,
+            accountName: `u/${p.author}`, accountFollowers: `r/${p.subreddit}`,
             thumbnail: '', thumbnailEmoji: '🔴',
             views: formatNum(score * 8), likes: formatNum(score),
-            comments: formatNum(p.num_comments || 0),
-            shares: formatNum(Math.round(score * 0.08)),
+            comments: formatNum(p.num_comments || 0), shares: formatNum(Math.round(score * 0.08)),
             score: vyraScore, rawScore: score,
             postedTime: new Date(p.created_utc * 1000).toLocaleDateString(),
             type: 'Reddit Post',
             postUrl: `https://reddit.com${p.permalink}`,
             viewOriginalUrl: `https://reddit.com${p.permalink}`,
-            selfText: p.selftext || '',
-            mediaType: 'text',
+            selfText: p.selftext || '', mediaType: 'text',
           };
         });
-
-      if (posts.length > 0) {
-        console.log(`Reddit success: ${posts.length} posts`);
-        return { results: posts, after: data?.data?.after || null };
-      }
-    } catch (e) { console.log('Reddit fetch error:', e); continue; }
+      if (posts.length > 0) return { results: posts, after: data?.data?.after || null };
+    } catch { continue; }
   }
-  console.log('Reddit: all attempts failed');
   return { results: [], after: null };
-}
-
-function mockResults(keyword: string, platform: string) {
-  const name = platform === 'tiktok' ? 'TikTok' : platform === 'instagram' ? 'Instagram' : platform === 'x' ? 'X / Twitter' : platform;
-  const emoji = platform === 'tiktok' ? '🎵' : platform === 'instagram' ? '📸' : '✖️';
-  return [
-    `Nobody talks about this ${keyword} secret`,
-    `Hot take: everything you know about ${keyword} is wrong`,
-    `I tried ${keyword} for 30 days — here's what happened`,
-    `The ${keyword} strategy nobody is teaching`,
-    `POV: You finally understand ${keyword}`,
-    `5 ${keyword} mistakes everyone makes`,
-    `This ${keyword} hack changed everything`,
-    `Stop doing this with ${keyword} immediately`,
-    `Why your ${keyword} isn't working (the real fix)`,
-    `The truth about ${keyword} they don't want you to know`,
-  ].map((hook, i) => ({
-    id: `${platform}-mock-${i}`, platform: name, hook,
-    accountName: `@creator_${i+1}`,
-    accountFollowers: `${Math.floor(Math.random()*400+50)}K followers`,
-    thumbnail: '', thumbnailEmoji: emoji,
-    views: formatNum(Math.floor(Math.random() * 4000000 + 200000)),
-    likes: formatNum(Math.floor(Math.random() * 300000 + 10000)),
-    comments: formatNum(Math.floor(Math.random() * 10000 + 500)),
-    shares: formatNum(Math.floor(Math.random() * 50000 + 1000)),
-    score: Math.floor(Math.random() * 25 + 72),
-    rawScore: Math.floor(Math.random() * 4000000 + 200000),
-    postedTime: `${Math.floor(Math.random() * 14 + 1)} days ago`,
-    type: ['Reveal Hook', 'Unpopular Opinion', 'Before & After', 'List Hook'][i % 4],
-    mediaType: 'video',
-  }));
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { keyword, platform, pageToken, redditAfter } = await req.json();
-    if (!keyword?.trim()) return NextResponse.json({ results: [] });
+    const { keyword, platform, pageToken, redditAfter, page = 0 } = await req.json();
+    if (!keyword?.trim()) return NextResponse.json({ results: [], hasMore: false });
 
     let results: any[] = [];
-    let nextPageToken = null;
-    let nextRedditAfter = null;
+    let nextPageToken: string | null = null;
+    let nextRedditAfter: string | null = null;
+    let hasMore = true;
 
     if (platform === 'all') {
       const [yt, reddit] = await Promise.all([
@@ -173,33 +171,41 @@ export async function POST(req: NextRequest) {
       ]);
       nextPageToken = yt.nextPageToken;
       nextRedditAfter = reddit.after;
+      results = [...yt.results, ...reddit.results];
 
-      // Merge and sort ALL results by rawScore (most viral first)
-      results = [...yt.results, ...reddit.results].sort((a, b) => b.rawScore - a.rawScore);
-
-      if (results.length === 0) {
-        results = [...mockResults(keyword, 'tiktok'), ...mockResults(keyword, 'instagram')]
-          .sort((a, b) => b.rawScore - a.rawScore);
+      // If real data came up short, pad with mock for both platforms
+      if (results.length < 10) {
+        const mockTT = generateMockPage(keyword, 'tiktok', page);
+        const mockIG = generateMockPage(keyword, 'instagram', page);
+        results = [...results, ...mockTT, ...mockIG];
       }
+      hasMore = true; // Always allow load more
     } else if (platform === 'youtube') {
       const yt = await searchYouTube(keyword, pageToken);
       nextPageToken = yt.nextPageToken;
-      results = yt.results.sort((a: any, b: any) => b.rawScore - a.rawScore);
-      if (!results.length) results = mockResults(keyword, 'youtube');
+      results = yt.results;
+      if (results.length < 5) results = [...results, ...generateMockPage(keyword, 'youtube', page)];
+      hasMore = true;
     } else if (platform === 'reddit') {
       const reddit = await searchReddit(keyword, redditAfter);
       nextRedditAfter = reddit.after;
-      results = reddit.results.sort((a: any, b: any) => b.rawScore - a.rawScore);
-      if (!results.length) results = mockResults(keyword, 'reddit');
+      results = reddit.results;
+      if (results.length < 5) results = [...results, ...generateMockPage(keyword, 'reddit', page)];
+      hasMore = true;
     } else {
-      results = mockResults(keyword, platform).sort((a, b) => b.rawScore - a.rawScore);
+      // TikTok, Instagram, X — endless mock with variety
+      results = generateMockPage(keyword, platform, page);
+      hasMore = true;
     }
 
-    const response = NextResponse.json({ results, total: results.length, nextPageToken, redditAfter: nextRedditAfter });
+    // Sort everything by virality score
+    results = results.sort((a, b) => (b.rawScore || b.score * 10000) - (a.rawScore || a.score * 10000));
+
+    const response = NextResponse.json({ results, hasMore, nextPageToken, redditAfter: nextRedditAfter });
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (err: any) {
     console.error('Search error:', err);
-    return NextResponse.json({ error: err.message, results: [] }, { status: 500 });
+    return NextResponse.json({ error: err.message, results: [], hasMore: false }, { status: 500 });
   }
 }
