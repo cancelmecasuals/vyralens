@@ -1,59 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
+const RELATED: Record<string, string[]> = {
+  manifesting: ['manifesting','manifestation','manifest','lawofattraction','lawofassumption','abundance','affirmations','manifestyourdreams','manifestationcoach','manifestinglife','manifestingmiracles','manifestingyourdreams','lawofattractionworks','abundancemindset','manifestationquotes'],
+};
+
 export async function GET(req: NextRequest) {
   const sessionId = process.env.INSTAGRAM_SESSION_ID?.trim();
   const csrfToken = process.env.INSTAGRAM_CSRF_TOKEN?.trim();
   const dsUserId = process.env.INSTAGRAM_DS_USER_ID?.trim();
+  const bdToken = process.env.BRIGHT_DATA_API_KEY?.trim();
   const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
+  const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
   const headers: Record<string, string> = {
     'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
     'X-CSRFToken': csrfToken || '',
     'X-IG-App-ID': '936619743392459',
     'X-Requested-With': 'XMLHttpRequest',
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': '*/*',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Referer': 'https://www.instagram.com/',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+    'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
   };
 
-  const endpoints = [
-    `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=blended`,
-    `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=media`,
-    `https://www.instagram.com/api/v1/fbsearch/topsearch/?context=blended&query=${encodeURIComponent(keyword)}&rank_token=0.1&count=30`,
-    `https://www.instagram.com/api/v1/fbsearch/web/search_serp/?query=${encodeURIComponent(keyword)}`,
-  ];
+  const relatedTags = RELATED[tag] || [tag];
+  const shortcodes: string[] = [];
+  const seen = new Set<string>();
 
-  const results: any = {};
-  for (const url of endpoints) {
-    const key = url.split('?')[0].split('/').slice(-2).join('/');
-    try {
-      const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-      const text = await res.text();
-      let data: any;
-      try { data = JSON.parse(text); } catch { data = null; }
-      
-      let maxLikes = 0;
-      let postCount = 0;
-      if (text.includes('like_count')) {
-        const matches = text.match(/"like_count":(\d+)/g) || [];
-        const likes = matches.map(m => parseInt(m.replace('"like_count":', ''))).filter(n => n > 100);
-        maxLikes = Math.max(0, ...likes);
-        postCount = likes.length;
-      }
+  // Hit ALL related hashtags in parallel
+  const tagResults = await Promise.all(
+    relatedTags.map(async (t) => {
+      try {
+        const res = await fetch(
+          `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${t}`,
+          { headers: { ...headers, 'Referer': `https://www.instagram.com/explore/tags/${t}/` }, signal: AbortSignal.timeout(8000) }
+        );
+        if (!res.ok) return { tag: t, count: 0 };
+        const data = await res.json();
+        const sections = [...(data?.data?.top?.sections || []), ...(data?.data?.recent?.sections || [])];
+        let count = 0;
+        for (const s of sections) {
+          for (const m of (s?.layout_content?.medias || [])) {
+            const media = m?.media || m;
+            const code = media?.code;
+            if (code && !seen.has(code)) {
+              seen.add(code);
+              shortcodes.push(code);
+              count++;
+            }
+          }
+        }
+        return { tag: t, count };
+      } catch { return { tag: t, count: 0 }; }
+    })
+  );
 
-      results[key] = { 
-        status: res.status,
-        maxLikes,
-        postCount,
-        topKeys: data ? Object.keys(data).slice(0, 8) : [],
-        preview: text.slice(0, 300),
-      };
-    } catch (e: any) {
-      results[key] = { error: e.message };
+  // Enrich top 100 with Bright Data
+  const bdUrls = shortcodes.slice(0, 100).map(code => ({ url: `https://www.instagram.com/p/${code}/` }));
+  const bdRes = await fetch(
+    `https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_lk5ns7kz21pck8jpis&format=json`,
+    {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${bdToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(bdUrls),
+      signal: AbortSignal.timeout(55000),
     }
-  }
+  );
 
-  return NextResponse.json(results);
+  const posts = bdRes.ok ? await bdRes.json() : [];
+  const sorted = Array.isArray(posts)
+    ? posts.filter((p: any) => (p.likes || p.num_likes || 0) > 0)
+        .sort((a: any, b: any) => (b.likes || b.num_likes || 0) - (a.likes || a.num_likes || 0))
+    : [];
+
+  return NextResponse.json({
+    tagsSearched: relatedTags.length,
+    tagResults,
+    totalShortcodes: shortcodes.length,
+    bdPostsReturned: Array.isArray(posts) ? posts.length : 0,
+    postsWithLikes: sorted.length,
+    maxLikes: sorted[0]?.likes || sorted[0]?.num_likes || 0,
+    top10: sorted.slice(0, 10).map((p: any) => ({
+      likes: p.likes || p.num_likes,
+      username: p.user_posted,
+      url: p.url,
+      caption: p.description?.slice(0, 60),
+    })),
+  });
 }
