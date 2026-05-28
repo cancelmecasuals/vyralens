@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const res = await fetch(
-      `https://api.scrapecreators.com/v1/instagram/reels/search?query=${encodeURIComponent(keyword)}`,
+      `https://api.scrapecreators.com/v2/instagram/reels/search?query=${encodeURIComponent(keyword)}`,
       {
         headers: { 'x-api-key': scKey || '' },
         signal: AbortSignal.timeout(12000),
