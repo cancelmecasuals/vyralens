@@ -112,75 +112,80 @@ async function searchYouTube(keyword: string, pageToken?: string) {
   } catch (err) { console.error('YouTube error:', err); return { results: [], nextPageToken: null }; }
 }
 
-async function searchInstagram(keyword: string) {
-  const apifyKey = process.env.APIFY_API_KEY?.trim();
-  if (!apifyKey) return [];
+async function searchInstagram(keyword: string, page = 0) {
+  const rapidKey = process.env.RAPIDAPI_KEY?.replace(/[^\x00-\x7F]/g, '').trim();
+  if (!rapidKey) return [];
 
-  const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
+  const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  // Access Instagram's "Top Posts" section for a hashtag
-  // This is what tools like ViralFindr use — top posts ARE sorted by virality
-  const items = await runApifyActor('apify~instagram-scraper', {
-    hashtags: [hashtag],
-    resultsType: 'posts',
-    resultsLimit: 30,
-    addParentData: false,
-    // Don't filter by type — top posts include images and reels
-  }, 90);
+  try {
+    const url = `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/hashtag_section?tag=${encodeURIComponent(tag)}&section=top`;
+    const res = await fetch(url, {
+      headers: {
+        'x-rapidapi-key': rapidKey,
+        'x-rapidapi-host': 'instagram-api-fast-reliable-data-scraper.p.rapidapi.com',
+        'Content-Type': 'application/json',
+      },
+      signal: AbortSignal.timeout(15000),
+    });
 
-  if (!items.length) {
-    // Fallback: try with the hashtag scraper
-    const items2 = await runApifyActor('apify~instagram-hashtag-scraper', {
-      hashtags: [hashtag],
-      resultsLimit: 50,
-      addParentData: false,
-    }, 60);
-    if (!items2.length) return [];
-    return processInstagramItems(items2);
-  }
+    if (!res.ok) { console.error('Instagram RapidAPI error:', res.status); return []; }
 
-  return processInstagramItems(items);
-}
+    const data = await res.json();
+    console.log('Instagram raw keys:', Object.keys(data || {}));
 
-function processInstagramItems(items: any[]) {
-  return items
-    .map((item: any, i: number) => {
-      const likes = item.likesCount || 0;
-      const comments = item.commentsCount || 0;
-      const videoViews = item.videoViewCount || item.videoPlayCount || 0;
-      // Top posts have real engagement — use it directly
-      const rawScore = videoViews > 0 ? videoViews : likes * 15;
-      const vyraScore = Math.min(99, Math.max(50, Math.round(
-        Math.log10(Math.max(rawScore + 1, 1)) * 11
-      )));
-      const caption = item.caption || item.alt || '';
-      const isVideo = item.type === 'Video' || !!item.videoUrl || item.productType === 'clips';
+    // Try multiple response structures
+    const sections = data?.data?.top?.sections
+      || data?.data?.sections
+      || data?.sections
+      || data?.top?.sections
+      || [];
+
+    const items: any[] = [];
+    for (const section of sections) {
+      const medias = section?.layout_content?.medias || [];
+      for (const m of medias) {
+        const media = m?.media || m;
+        if (media?.id) items.push(media);
+      }
+    }
+
+    if (!items.length) {
+      console.log('Instagram no items, raw:', JSON.stringify(data).slice(0, 600));
+      return [];
+    }
+
+    return items.map((media: any, i: number) => {
+      const likes = media.like_count || 0;
+      const comments = media.comment_count || 0;
+      const views = media.view_count || media.play_count || media.video_view_count || 0;
+      const rawScore = views > 0 ? views : likes * 15;
+      const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(rawScore + 1, 1)) * 11)));
+      const caption = media.caption?.text || '';
+      const isVideo = media.media_type === 2 || !!media.video_url;
+      const username = media.user?.username || media.owner?.username || 'creator';
+      const shortCode = media.code || media.shortcode || '';
       return {
-        id: `ig-${item.id || item.shortCode || i}`,
-        platform: 'Instagram',
+        id: `ig-${media.id || i}`, platform: 'Instagram',
         hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
         description: caption.slice(0, 400),
-        accountName: `@${item.ownerUsername || 'creator'}`,
-        accountFollowers: item.ownerFullName || '',
-        thumbnail: item.displayUrl || item.previewUrl || '',
+        accountName: `@${username}`,
+        accountFollowers: media.user?.full_name || '',
+        thumbnail: media.image_versions2?.candidates?.[0]?.url || media.display_url || '',
         thumbnailEmoji: '📸',
-        views: videoViews > 0 ? formatNum(videoViews) : likes > 0 ? formatNum(likes * 15) : '—',
-        likes: formatNum(likes),
-        comments: formatNum(comments),
-        shares: '—',
-        score: vyraScore,
-        rawScore: rawScore || (likes * 15) || i,
-        postedTime: item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recent',
+        views: views > 0 ? formatNum(views) : formatNum(likes * 15),
+        likes: formatNum(likes), comments: formatNum(comments), shares: '—',
+        score: vyraScore, rawScore,
+        postedTime: media.taken_at ? new Date(media.taken_at * 1000).toLocaleDateString() : 'Recent',
         type: isVideo ? 'Instagram Reel' : 'Instagram Post',
-        videoUrl: item.videoUrl || null,
-        postUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
-        viewOriginalUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
-        mediaType: isVideo ? 'video' : 'image',
-        caption,
+        videoUrl: media.video_url || null,
+        postUrl: shortCode ? `https://instagram.com/p/${shortCode}` : null,
+        viewOriginalUrl: shortCode ? `https://instagram.com/p/${shortCode}` : null,
+        mediaType: isVideo ? 'video' : 'image', caption,
       };
-    })
-    .filter((r: any) => r.rawScore > 0)
-    .sort((a: any, b: any) => b.rawScore - a.rawScore);
+    }).sort((a: any, b: any) => b.rawScore - a.rawScore);
+
+  } catch (err) { console.error('Instagram RapidAPI error:', err); return []; }
 }
 
 async function searchTikTok(keyword: string) {

@@ -2,53 +2,47 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const apifyKey = process.env.APIFY_API_KEY?.trim();
-  if (!apifyKey) return NextResponse.json({ error: 'No Apify key' });
-
+  const rapidKey = process.env.RAPIDAPI_KEY?.replace(/[^\x00-\x7F]/g, '').trim();
   const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
-  const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
+  const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  const tests = [
-    {
-      name: 'instagram-scraper-posts',
-      actor: 'apify~instagram-scraper',
-      input: { hashtags: [hashtag], resultsType: 'posts', resultsLimit: 3 },
-    },
-    {
-      name: 'instagram-scraper-reels',
-      actor: 'apify~instagram-scraper',
-      input: { hashtags: [hashtag], resultsType: 'reels', resultsLimit: 3 },
-    },
-    {
-      name: 'instagram-hashtag-scraper',
-      actor: 'apify~instagram-hashtag-scraper',
-      input: { hashtags: [hashtag], resultsLimit: 3 },
-    },
-  ];
+  try {
+    const url = `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/hashtag_section?tag=${encodeURIComponent(tag)}&section=top`;
+    const res = await fetch(url, {
+      headers: {
+        'x-rapidapi-key': rapidKey || '',
+        'x-rapidapi-host': 'instagram-api-fast-reliable-data-scraper.p.rapidapi.com',
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = text; }
 
-  const results: any = {};
-
-  for (const test of tests) {
-    try {
-      const url = `https://api.apify.com/v2/acts/${test.actor}/run-sync-get-dataset-items?token=${apifyKey}&timeout=60&memory=512&maxItems=3`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(test.input),
-        signal: AbortSignal.timeout(65000),
-      });
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch { data = text; }
-      results[test.name] = {
-        status: res.status,
-        itemCount: Array.isArray(data) ? data.length : 0,
-        raw: Array.isArray(data) ? data[0] : data,
-      };
-    } catch (err: any) {
-      results[test.name] = { error: err.message };
+    const sections = data?.data?.top?.sections || data?.data?.sections || data?.sections || data?.top?.sections || [];
+    const items: any[] = [];
+    for (const s of sections) {
+      for (const m of (s?.layout_content?.medias || [])) {
+        if (m?.media?.id) items.push(m.media);
+      }
     }
-  }
 
-  return NextResponse.json(results);
+    return NextResponse.json({
+      status: res.status,
+      topLevelKeys: Object.keys(data || {}),
+      dataKeys: Object.keys(data?.data || {}),
+      sectionsFound: sections.length,
+      itemsExtracted: items.length,
+      firstItem: items[0] ? {
+        id: items[0].id,
+        like_count: items[0].like_count,
+        comment_count: items[0].comment_count,
+        media_type: items[0].media_type,
+        caption: items[0].caption?.text?.slice(0, 80),
+      } : null,
+      rawSample: JSON.stringify(data).slice(0, 800),
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message });
+  }
 }
