@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
 
   if (sessionId) {
     try {
+      // Page 0: web_info (top + recent sections)
       const res = await fetch(`https://www.instagram.com/api/v1/tags/web_info/?tag_name=${tag}`, {
         headers: {
           'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
@@ -67,6 +68,36 @@ export async function GET(req: NextRequest) {
           }
         }
       }
+
+      // Pages 1-8: sections endpoint for more posts
+      const headers = {
+        'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
+        'X-CSRFToken': csrfToken || '',
+        'X-IG-App-ID': '936619743392459',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
+      };
+      for (let page = 1; page <= 8; page++) {
+        try {
+          const pageRes = await fetch(
+            `https://www.instagram.com/api/v1/tags/${tag}/sections/?tab=top&page=${page}&surface=grid`,
+            { headers, signal: AbortSignal.timeout(8000) }
+          );
+          if (!pageRes.ok) break;
+          const pageData = await pageRes.json();
+          const pageSections = pageData?.sections || [];
+          if (!pageSections.length) break;
+          for (const s of pageSections) {
+            for (const m of (s?.layout_content?.medias || [])) {
+              const media = m?.media || m;
+              const code = media?.code || media?.shortcode;
+              if (code && !shortcodes.includes(code)) shortcodes.push(code);
+            }
+          }
+          await new Promise(r => setTimeout(r, 300));
+        } catch { break; }
+      }
     } catch { }
   }
 
@@ -75,11 +106,11 @@ export async function GET(req: NextRequest) {
 
   if (shortcodes.length > 0) {
     // Use Bright Data to enrich these posts with full data including likes
-    const postUrls = shortcodes.slice(0, 20).map(code => ({
+    const postUrls = shortcodes.slice(0, 50).map(code => ({
       url: `https://www.instagram.com/p/${code}/`
     }));
 
-    const reelUrls = shortcodes.slice(0, 20).map(code => ({
+    const reelUrls = shortcodes.slice(0, 50).map(code => ({
       url: `https://www.instagram.com/reel/${code}/`
     }));
 
