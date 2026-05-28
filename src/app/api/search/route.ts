@@ -112,20 +112,29 @@ async function searchYouTube(keyword: string, pageToken?: string) {
   } catch (err) { console.error('YouTube error:', err); return { results: [], nextPageToken: null }; }
 }
 
-async function searchInstagram(keyword: string, page = 0) {
+async function searchInstagram(keyword: string, page = 0, dateFilter = 'all') {
   const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
   try {
     const { supabaseAdmin } = await import('@/lib/supabase');
     const sb = supabaseAdmin();
     const offset = page * 25;
-    const { data: dbPosts } = await sb
-      .from('instagram_posts')
-      .select('*')
-      .eq('keyword', tag)
+
+    // Build date filter
+    let dateQuery = sb.from('instagram_posts').select('*').eq('keyword', tag);
+    if (dateFilter === 'week') {
+      dateQuery = dateQuery.gte('taken_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+    } else if (dateFilter === 'month') {
+      dateQuery = dateQuery.gte('taken_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+    } else if (dateFilter === 'year') {
+      dateQuery = dateQuery.gte('taken_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString());
+    }
+
+    const { data: dbPosts } = await dateQuery
       .order('like_count', { ascending: false })
       .range(offset, offset + 24);
 
+    // If we have DB posts, return them
     if (dbPosts && dbPosts.length > 0) {
       // Trigger background refresh if stale
       const oldest = dbPosts[0]?.updated_at;
@@ -153,20 +162,21 @@ async function searchInstagram(keyword: string, page = 0) {
           postedTime: post.taken_at ? new Date(post.taken_at).toLocaleDateString() : 'Recent',
           type: isVideo ? 'Instagram Reel' : 'Instagram Post',
           videoUrl: null, postUrl, viewOriginalUrl: postUrl,
-          mediaType: isVideo ? 'video' : 'image',
-          caption: post.caption || '',
+          mediaType: isVideo ? 'video' : 'image', caption: post.caption || '',
         };
       });
     }
 
-    // DB empty — trigger background crawl and serve live data
+    // DB empty — fetch live from parseforge AND trigger background crawl to populate DB
+    const apifyKey = process.env.APIFY_API_KEY?.trim();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vyralens.vercel.app';
+    
+    // Fire background crawl to populate DB for next time
     fetch(`${siteUrl}/api/crawl?secret=${process.env.CRAWL_SECRET}&keyword=${tag}`).catch(() => {});
 
-    // Live fallback using parseforge directly
-    const apifyKey = process.env.APIFY_API_KEY?.trim();
     if (!apifyKey) return [];
 
+    // Live fetch from parseforge — returns 18M+ like posts immediately
     const apifyRes = await fetch(
       `https://api.apify.com/v2/acts/parseforge~instagram-hashtag-analytics-scraper/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=512`,
       {
@@ -435,7 +445,7 @@ async function searchReddit(keyword: string, page = 0) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { keyword, platform, pageToken, page = 0 } = await req.json();
+    const { keyword, platform, pageToken, page = 0, dateFilter = 'all' } = await req.json();
     if (!keyword?.trim()) return NextResponse.json({ results: [], hasMore: false });
 
     let results: any[] = [];
@@ -462,7 +472,7 @@ export async function POST(req: NextRequest) {
       results.sort((a, b) => b.rawScore - a.rawScore);
 
     } else if (platform === 'instagram') {
-      const ig = await searchInstagram(keyword, page);
+      const ig = await searchInstagram(keyword, page, dateFilter);
       results = ig.length > 0 ? ig : mockFor(keyword, 'instagram', page);
       results.sort((a, b) => b.rawScore - a.rawScore);
 

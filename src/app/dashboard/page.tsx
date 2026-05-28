@@ -85,6 +85,7 @@ export default function Dashboard() {
   const [redditAfter, setRedditAfter] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [dateFilter, setDateFilter] = useState<string>('all');
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [analysis, setAnalysis] = useState('');
   const [activeTab, setActiveTab] = useState('analysis');
@@ -141,7 +142,7 @@ export default function Dashboard() {
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, platform: activePlatform, page: 0 }),
+        body: JSON.stringify({ keyword, platform: activePlatform, page: 0, dateFilter }),
       });
       const data = await res.json();
       setResults(data.results || []);
@@ -162,7 +163,7 @@ export default function Dashboard() {
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, platform: activePlatform, pageToken: nextPageToken, redditAfter, page: nextPage }),
+        body: JSON.stringify({ keyword, platform: activePlatform, pageToken: nextPageToken, redditAfter, page: nextPage, dateFilter }),
       });
       const data = await res.json();
       setResults(prev => {
@@ -600,7 +601,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
             </div>
 
             {/* Platform filter */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
               {PLATFORMS.map(p => (
                 <button key={p.id} className="platform-tab" onClick={() => {
                     setActivePlatform(p.id);
@@ -615,7 +616,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                       fetch('/api/search', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ keyword, platform: p.id, page: 0 }),
+                        body: JSON.stringify({ keyword, platform: p.id, page: 0, dateFilter }),
                       }).then(r => r.json()).then(data => {
                         setResults(data.results || []);
                         setNextPageToken(data.nextPageToken || null);
@@ -627,6 +628,38 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: `1px solid ${activePlatform === p.id ? C.violet : C.border}`, background: activePlatform === p.id ? C.violetDim : 'transparent', color: activePlatform === p.id ? C.violetLight : C.textSub, fontSize: 13, fontWeight: activePlatform === p.id ? 600 : 400, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>
                   {p.icon} {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Date filter */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 28, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: C.textSub, marginRight: 4 }}>Time period:</span>
+              {[
+                { id: 'all', label: '🏆 All Time' },
+                { id: 'year', label: '📅 This Year' },
+                { id: 'month', label: '🗓 This Month' },
+                { id: 'week', label: '⚡ This Week' },
+              ].map(f => (
+                <button key={f.id} onClick={() => {
+                  setDateFilter(f.id);
+                  if (keyword.trim() && results.length > 0) {
+                    setResults([]);
+                    setCurrentPage(0);
+                    setSearching(true);
+                    fetch('/api/search', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ keyword, platform: activePlatform, page: 0, dateFilter: f.id }),
+                    }).then(r => r.json()).then(data => {
+                      setResults(data.results || []);
+                      setHasMore(data.hasMore !== false);
+                      setSearching(false);
+                    }).catch(() => setSearching(false));
+                  }
+                }}
+                  style={{ padding: '5px 12px', borderRadius: 7, border: `1px solid ${dateFilter === f.id ? C.violet : C.border}`, background: dateFilter === f.id ? C.violetDim : 'transparent', color: dateFilter === f.id ? C.violetLight : C.textSub, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>
+                  {f.label}
                 </button>
               ))}
             </div>
