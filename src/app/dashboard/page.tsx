@@ -479,436 +479,437 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
   }
 
 
-  const PLATFORM_ICONS: Record<string, string> = {
-    'TikTok': '🎵', 'Instagram': '📸', 'YouTube': '▶️', 'Reddit': '🔴',
-  };
-  const PLATFORM_COLORS: Record<string, string> = {
-    'TikTok': '#FF2D55', 'Instagram': '#E1306C', 'YouTube': '#FF0000', 'Reddit': '#FF4500',
-  };
+  const PC: Record<string,string> = { TikTok:'#FF2D55', Instagram:'#E1306C', YouTube:'#FF0000', Reddit:'#FF4500' };
+  const PI: Record<string,string> = { TikTok:'🎵', Instagram:'📸', YouTube:'▶', Reddit:'↑' };
+  const viralLabel = (s: number) => s >= 90 ? 'MEGA VIRAL' : s >= 80 ? 'VIRAL' : s >= 65 ? 'TRENDING' : 'NOTABLE';
+  const viralColor = (s: number) => s >= 80 ? '#F5A623' : s >= 65 ? '#FFB73Daa' : 'rgba(255,255,255,0.2)';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', fontFamily: "'Satoshi', 'DM Sans', sans-serif", color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#050505', fontFamily: "'Satoshi','DM Sans',sans-serif", color: '#fff', overflow: 'hidden' }}>
       <style dangerouslySetInnerHTML={{__html:`
         @import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=cabinet-grotesk@800,700,500&display=swap');
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(245,166,35,0.2); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(245,166,35,0.4); }
-        input, textarea { outline: none; }
-        input::placeholder { color: rgba(255,255,255,0.25); }
-        textarea::placeholder { color: rgba(255,255,255,0.25); }
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        @keyframes glow{0%,100%{box-shadow:0 0 20px rgba(245,166,35,0.1)}50%{box-shadow:0 0 40px rgba(245,166,35,0.25)}}
+        *{box-sizing:border-box}
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:rgba(245,166,35,0.15);border-radius:4px}
+        input,textarea{outline:none}
+        input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.2)}
 
-        .nav-btn { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; border: none; cursor: pointer; background: transparent; font-family: 'Satoshi','DM Sans',sans-serif; font-size: 13px; font-weight: 500; transition: all 0.15s; text-align: left; width: 100%; white-space: nowrap; overflow: hidden; color: rgba(255,255,255,0.4); }
-        .nav-btn:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
-        .nav-btn.active { background: rgba(245,166,35,0.1); color: #F5A623; }
+        .vcard{
+          background:#0C0C0C;
+          border:1px solid rgba(255,255,255,0.06);
+          border-radius:16px;
+          cursor:pointer;
+          transition:all 0.2s;
+          animation:fadeIn 0.5s ease both;
+          overflow:hidden;
+          position:relative;
+        }
+        .vcard:hover{border-color:rgba(255,255,255,0.14);background:#0F0F0F;transform:translateY(-1px)}
+        .vcard.selected{border-color:rgba(245,166,35,0.4);background:rgba(245,166,35,0.03)}
+        .vcard:hover .card-arrow{opacity:1;transform:translateX(0)}
+        .card-arrow{opacity:0;transform:translateX(-4px);transition:all 0.2s}
 
-        .result-card { background: #0F0F0F; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 20px; cursor: pointer; transition: all 0.2s; animation: fadeUp 0.4s ease both; }
-        .result-card:hover { border-color: rgba(245,166,35,0.3); background: #131313; transform: translateY(-1px); }
-        .result-card.active { border-color: rgba(245,166,35,0.5); background: rgba(245,166,35,0.04); }
+        .top-btn{background:transparent;border:none;color:rgba(255,255,255,0.35);cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 14px;border-radius:8px;transition:all 0.15s;white-space:nowrap}
+        .top-btn:hover{color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.05)}
+        .top-btn.active{color:#F5A623;background:rgba(245,166,35,0.08)}
 
-        .platform-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s; font-family: 'Satoshi','DM Sans',sans-serif; color: rgba(255,255,255,0.4); }
-        .platform-pill:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); }
-        .platform-pill.active { border-color: #F5A623; background: rgba(245,166,35,0.08); color: #F5A623; }
+        .pfilt{background:transparent;border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+        .pfilt:hover{border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7)}
+        .pfilt.on{color:#F5A623;border-color:rgba(245,166,35,0.4);background:rgba(245,166,35,0.06)}
 
-        .search-input { width: 100%; background: #0F0F0F; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 20px; color: #fff; font-size: 16px; font-family: 'Satoshi','DM Sans',sans-serif; transition: border-color 0.2s; }
-        .search-input:focus { border-color: rgba(245,166,35,0.4); }
+        .dfilt{background:transparent;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;font-size:11px;font-weight:700;padding:6px 12px;border-radius:7px;transition:all 0.15s;letter-spacing:0.04em;text-transform:uppercase}
+        .dfilt:hover{color:rgba(255,255,255,0.7)}
+        .dfilt.on{color:#F5A623;background:rgba(245,166,35,0.08)}
 
-        .search-btn { background: #F5A623; color: #080808; border: none; padding: 16px 28px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Cabinet Grotesk','Satoshi',sans-serif; transition: all 0.2s; white-space: nowrap; letter-spacing: 0.01em; }
-        .search-btn:hover { background: #FFB73D; transform: translateY(-1px); }
-        .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .sbtn{background:#F5A623;color:#050505;border:none;padding:0 24px;height:48px;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Cabinet Grotesk','Satoshi',sans-serif;transition:all 0.2s;white-space:nowrap;letter-spacing:0.02em}
+        .sbtn:hover{background:#FFB73D;transform:translateY(-1px);box-shadow:0 8px 24px rgba(245,166,35,0.25)}
+        .sbtn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
 
-        .tab-btn { flex: 1; padding: 10px; background: transparent; border: none; border-bottom: 2px solid transparent; color: rgba(255,255,255,0.35); font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Satoshi','DM Sans',sans-serif; transition: all 0.15s; letter-spacing: 0.04em; text-transform: uppercase; }
-        .tab-btn.active { border-bottom-color: #F5A623; color: #F5A623; }
+        .sinput{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0 18px;height:48px;color:#fff;font-size:15px;font-family:'Satoshi','DM Sans',sans-serif;transition:all 0.2s;width:100%}
+        .sinput:focus{border-color:rgba(245,166,35,0.3);background:rgba(255,255,255,0.06)}
 
-        .outlier-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; font-family: 'Cabinet Grotesk','Satoshi',sans-serif; }
+        .tab{background:transparent;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,0.3);cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;font-size:12px;font-weight:700;padding:12px 16px;transition:all 0.15s;letter-spacing:0.06em;text-transform:uppercase;flex:1}
+        .tab.on{border-bottom-color:#F5A623;color:#F5A623}
+        .tab:hover{color:rgba(255,255,255,0.7)}
 
-        .stat-pill { display: flex; align-items: center; gap: 5px; font-size: 12px; color: rgba(255,255,255,0.4); }
+        .abtn{width:100%;background:#F5A623;color:#050505;border:none;padding:13px;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Cabinet Grotesk','Satoshi',sans-serif;transition:all 0.2s;letter-spacing:0.02em}
+        .abtn:hover{background:#FFB73D}
+        .abtn:disabled{opacity:0.5;cursor:not-allowed}
 
-        .load-more { width: 100%; padding: 14px; background: transparent; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: rgba(255,255,255,0.4); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Satoshi','DM Sans',sans-serif; transition: all 0.2s; }
-        .load-more:hover { border-color: rgba(245,166,35,0.3); color: #F5A623; }
+        .obtn{width:100%;background:transparent;border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);padding:11px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;transition:all 0.2s}
+        .obtn:hover{border-color:rgba(245,166,35,0.3);color:#F5A623}
 
-        .copy-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Satoshi','DM Sans',sans-serif; transition: all 0.2s; }
-        .copy-btn:hover { background: rgba(245,166,35,0.1); border-color: rgba(245,166,35,0.3); color: #F5A623; }
+        .load-more{width:100%;padding:14px;background:transparent;border:1px solid rgba(255,255,255,0.07);border-radius:10px;color:rgba(255,255,255,0.3);font-size:13px;font-weight:600;cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;transition:all 0.2s;margin-top:12px}
+        .load-more:hover{border-color:rgba(245,166,35,0.25);color:rgba(255,255,255,0.6)}
 
-        .gen-btn { background: #F5A623; color: #080808; border: none; padding: 12px 20px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Cabinet Grotesk','Satoshi',sans-serif; transition: all 0.2s; width: 100%; }
-        .gen-btn:hover { background: #FFB73D; }
-        .gen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .date-pill { padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.07); background: transparent; color: rgba(255,255,255,0.35); font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Satoshi',sans-serif; transition: all 0.15s; letter-spacing: 0.04em; }
-        .date-pill.active { border-color: rgba(245,166,35,0.4); color: #F5A623; background: rgba(245,166,35,0.06); }
+        .noise{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.02;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
       `}}/>
 
-      {/* SIDEBAR */}
-      <aside style={{ width: sidebarOpen ? 220 : 60, background: '#0A0A0A', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', transition: 'width 0.25s ease', flexShrink: 0, position: 'fixed', top: 0, bottom: 0, zIndex: 50, overflow: 'hidden' }}>
+      <div className="noise" />
+
+      {/* TOP NAV */}
+      <header style={{ position:'fixed', top:0, left:0, right:0, height:58, background:'rgba(5,5,5,0.92)', backdropFilter:'blur(24px)', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', padding:'0 24px', gap:16, zIndex:100 }}>
         
         {/* Logo */}
-        <div onClick={() => setSidebarOpen(!sidebarOpen)} style={{ padding: '20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: 64 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F5A623', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 15, fontWeight: 800, color: '#080808' }}>V</span>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginRight:8, flexShrink:0 }}>
+          <div style={{ width:28, height:28, borderRadius:7, background:'#F5A623', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <span style={{ fontFamily:"'Cabinet Grotesk',sans-serif", fontSize:14, fontWeight:800, color:'#050505' }}>V</span>
           </div>
-          {sidebarOpen && <span style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 17, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>VYRA<span style={{ color: '#F5A623' }}>.</span></span>}
+          <span style={{ fontFamily:"'Cabinet Grotesk',sans-serif", fontSize:16, fontWeight:800, letterSpacing:'-0.01em' }}>VYRA<span style={{ color:'#F5A623' }}>.</span></span>
         </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {[
-            { id: 'search', icon: '⌕', label: 'Discover' },
-            { id: 'trending', icon: '↑', label: 'Trending' },
-            { id: 'saved', icon: '◈', label: 'Saved' },
-            { id: 'competitors', icon: '◎', label: 'Spy Mode' },
-            { id: 'patterns', icon: '⊞', label: 'Patterns' },
-            { id: 'calendar', icon: '◻', label: 'Calendar' },
-            { id: 'predictor', icon: '◈', label: 'Predictor' },
-          ].map(item => (
-            <button key={item.id} className={`nav-btn ${activeNav === item.id ? 'active' : ''}`} onClick={() => setActiveNav(item.id)}>
-              <span style={{ fontSize: 16, flexShrink: 0, fontFamily: 'monospace', width: 20, textAlign: 'center' }}>{item.icon}</span>
-              {sidebarOpen && <span>{item.label}</span>}
-            </button>
+        {/* Nav items */}
+        <nav style={{ display:'flex', gap:2 }}>
+          {[['search','Discover'],['trending','Trending'],['saved','Saved'],['patterns','Patterns']].map(([id,label]) => (
+            <button key={id} className={`top-btn ${activeNav===id?'active':''}`} onClick={() => setActiveNav(id)}>{label}</button>
           ))}
         </nav>
 
-        {/* Bottom */}
-        <div style={{ padding: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          {sidebarOpen && <div style={{ padding: '6px 12px', fontSize: 11, color: 'rgba(255,255,255,0.25)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{user?.email}</div>}
+        {/* Search - center */}
+        <div style={{ flex:1, display:'flex', gap:8, maxWidth:540, margin:'0 auto' }}>
+          <input className="sinput" value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key==='Enter' && handleSearch()} placeholder="Search any keyword, niche, or topic..." />
+          <button className="sbtn" onClick={handleSearch} disabled={searching}>{searching ? '···' : 'Search'}</button>
+        </div>
+
+        {/* Right actions */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginLeft:'auto', flexShrink:0 }}>
+          <div style={{ width:7, height:7, borderRadius:'50%', background:'#F5A623', animation:'pulse 2s infinite' }} />
+          <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)', fontFamily:'monospace', letterSpacing:'0.06em' }}>LIVE</span>
           {subscription && (
-            <button className="nav-btn" onClick={async () => {
-              const res = await fetch('/api/stripe/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerId: subscription.stripe_customer_id }) });
+            <button className="top-btn" onClick={async () => {
+              const res = await fetch('/api/stripe/portal', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customerId:subscription.stripe_customer_id}) });
               const data = await res.json();
               if (data.url) window.location.href = data.url;
-            }}>
-              <span style={{ fontSize: 14, flexShrink: 0, width: 20, textAlign: 'center' }}>⬡</span>
-              {sidebarOpen && <span style={{ fontSize: 13 }}>Billing</span>}
-            </button>
+            }}>Billing</button>
           )}
-          <button className="nav-btn" onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }}>
-            <span style={{ fontSize: 14, flexShrink: 0, width: 20, textAlign: 'center' }}>→</span>
-            {sidebarOpen && <span style={{ fontSize: 13 }}>Sign Out</span>}
-          </button>
+          <button className="top-btn" onClick={() => { import('@/lib/supabase').then(m => m.supabase.auth.signOut()); router.push('/'); }}>Sign out</button>
         </div>
-      </aside>
+      </header>
 
-      {/* MAIN */}
-      <main style={{ flex: 1, marginLeft: sidebarOpen ? 220 : 60, minHeight: '100vh', transition: 'margin-left 0.25s ease', overflow: 'auto', background: '#080808' }}>
+      {/* MAIN CONTENT */}
+      <div style={{ paddingTop:58, display:'flex', height:'100vh', overflow:'hidden' }}>
 
-        {activeNav === 'search' && (
-          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            
-            {/* Top bar */}
-            <div style={{ padding: '20px 32px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(20px)', zIndex: 10 }}>
-              <div>
-                <h1 style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', marginBottom: 2 }}>Discover</h1>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Find viral content across every platform</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F5A623', animation: 'pulse 2s infinite' }} />
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>LIVE</span>
-              </div>
-            </div>
+        {/* RESULTS FEED */}
+        <div style={{ flex:1, overflowY:'auto', padding:'24px 24px', minWidth:0 }}>
 
-            <div style={{ padding: '28px 32px', display: 'grid', gridTemplateColumns: selectedPost ? '1fr 420px' : '1fr', gap: 24, alignItems: 'start' }}>
-              
-              {/* Left — search + results */}
-              <div>
-                {/* Search */}
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                    <input className="search-input" value={keyword} onChange={e => setKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} placeholder="Search any keyword, niche, or topic..." />
-                    <button className="search-btn" onClick={handleSearch} disabled={searching}>
-                      {searching ? '···' : 'Search'}
+          {activeNav === 'search' && (
+            <>
+              {/* Filter bar */}
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {PLATFORMS.map(p => (
+                    <button key={p.id} className={`pfilt ${activePlatform===p.id?'on':''}`}
+                      style={{ borderColor: activePlatform===p.id ? (PC[p.label] || 'rgba(245,166,35,0.4)') : undefined, color: activePlatform===p.id ? (PC[p.label] || '#F5A623') : undefined }}
+                      onClick={() => {
+                        setActivePlatform(p.id);
+                        if (keyword.trim()) {
+                          setResults([]); setNextPageToken(null); setRedditAfter(null); setSelectedPost(null); setCurrentPage(0); setHasMore(false); setSearching(true);
+                          fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keyword,platform:p.id,page:0,dateFilter})})
+                            .then(r=>r.json()).then(d=>{setResults(d.results||[]);setNextPageToken(d.nextPageToken||null);setRedditAfter(d.redditAfter||null);setHasMore(d.hasMore!==false);setSearching(false);}).catch(()=>setSearching(false));
+                        }
+                      }}>
+                      <span>{p.icon}</span> {p.label}
                     </button>
-                  </div>
-
-                  {/* Filters row */}
-                  <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {PLATFORMS.map(p => (
-                        <button key={p.id} className={`platform-pill ${activePlatform === p.id ? 'active' : ''}`}
-                          onClick={() => {
-                            setActivePlatform(p.id);
-                            if (keyword.trim()) {
-                              setResults([]); setNextPageToken(null); setRedditAfter(null); setSelectedPost(null); setCurrentPage(0); setHasMore(false); setSearching(true);
-                              fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, platform: p.id, page: 0, dateFilter }) })
-                                .then(r => r.json()).then(data => { setResults(data.results || []); setNextPageToken(data.nextPageToken || null); setRedditAfter(data.redditAfter || null); setHasMore(data.hasMore !== false); setSearching(false); }).catch(() => setSearching(false));
-                            }
-                          }}>
-                          {p.icon} {p.label}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
-                      {[{id:'all',l:'All Time'},{id:'year',l:'Year'},{id:'month',l:'Month'},{id:'week',l:'Week'}].map(f => (
-                        <button key={f.id} className={`date-pill ${dateFilter === f.id ? 'active' : ''}`}
-                          onClick={() => {
-                            setDateFilter(f.id);
-                            if (keyword.trim() && results.length > 0) {
-                              setResults([]); setCurrentPage(0); setSearching(true);
-                              fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, platform: activePlatform, page: 0, dateFilter: f.id }) })
-                                .then(r => r.json()).then(data => { setResults(data.results || []); setHasMore(data.hasMore !== false); setSearching(false); }).catch(() => setSearching(false));
-                            }
-                          }}>{f.l}</button>
-                      ))}
-                    </div>
-                  </div>
+                  ))}
                 </div>
+                <div style={{ marginLeft:'auto', display:'flex', gap:2, background:'rgba(255,255,255,0.03)', borderRadius:9, padding:'2px', border:'1px solid rgba(255,255,255,0.06)' }}>
+                  {[{id:'all',l:'All Time'},{id:'year',l:'Year'},{id:'month',l:'Month'},{id:'week',l:'Week'}].map(f => (
+                    <button key={f.id} className={`dfilt ${dateFilter===f.id?'on':''}`}
+                      onClick={() => {
+                        setDateFilter(f.id);
+                        if (keyword.trim() && results.length > 0) {
+                          setResults([]); setCurrentPage(0); setSearching(true);
+                          fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keyword,platform:activePlatform,page:0,dateFilter:f.id})})
+                            .then(r=>r.json()).then(d=>{setResults(d.results||[]);setHasMore(d.hasMore!==false);setSearching(false);}).catch(()=>setSearching(false));
+                        }
+                      }}>{f.l}</button>
+                  ))}
+                </div>
+              </div>
 
-                {/* Loading */}
-                {searching && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '40px 0', justifyContent: 'center' }}>
-                    <div style={{ width: 20, height: 20, border: '2px solid rgba(245,166,35,0.2)', borderTop: '2px solid #F5A623', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Scanning platforms for "{keyword}"...</span>
-                  </div>
-                )}
+              {/* Results count */}
+              {results.length > 0 && !searching && (
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.2)', marginBottom:14, fontFamily:'monospace', letterSpacing:'0.04em' }}>
+                  {results.length} results for "{keyword}"
+                </div>
+              )}
 
-                {/* Empty */}
-                {!searching && results.length === 0 && keyword && (
-                  <div style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.2)' }}>
-                    <div style={{ fontSize: 40, marginBottom: 16 }}>◎</div>
-                    <div style={{ fontSize: 15, fontFamily: "'Cabinet Grotesk',sans-serif", fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.3)' }}>No results yet</div>
-                    <div style={{ fontSize: 13 }}>Try a different keyword or platform</div>
-                  </div>
-                )}
+              {/* Loading */}
+              {searching && (
+                <div style={{ display:'flex', alignItems:'center', gap:14, padding:'60px 0', justifyContent:'center' }}>
+                  <div style={{ width:18, height:18, border:'2px solid rgba(245,166,35,0.15)', borderTop:'2px solid #F5A623', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                  <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14 }}>Scanning for "{keyword}"...</span>
+                </div>
+              )}
 
-                {!searching && results.length === 0 && !keyword && (
-                  <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                    <div style={{ fontSize: 48, marginBottom: 20 }}>⌕</div>
-                    <div style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 18, fontWeight: 800, color: 'rgba(255,255,255,0.2)', marginBottom: 8, letterSpacing: '-0.01em' }}>Search anything</div>
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.15)', maxWidth: 300, margin: '0 auto', lineHeight: 1.6 }}>fitness · real estate · manifesting · skincare · side hustle</div>
-                  </div>
-                )}
+              {/* Empty state */}
+              {!searching && results.length === 0 && (
+                <div style={{ textAlign:'center', padding:'100px 0' }}>
+                  {keyword ? (
+                    <>
+                      <div style={{ fontSize:36, marginBottom:16, opacity:0.15 }}>◎</div>
+                      <div style={{ fontFamily:"'Cabinet Grotesk',sans-serif", fontSize:17, fontWeight:800, color:'rgba(255,255,255,0.2)', letterSpacing:'-0.01em', marginBottom:8 }}>No results found</div>
+                      <div style={{ fontSize:13, color:'rgba(255,255,255,0.12)' }}>Try a different keyword</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontFamily:"'Cabinet Grotesk',sans-serif", fontSize:28, fontWeight:800, color:'rgba(255,255,255,0.06)', letterSpacing:'-0.02em', marginBottom:12 }}>What's going viral?</div>
+                      <div style={{ fontSize:13, color:'rgba(255,255,255,0.1)', lineHeight:2 }}>fitness · real estate · manifesting · skincare · mindset · side hustle</div>
+                    </>
+                  )}
+                </div>
+              )}
 
-                {/* Results */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {results.map((post, i) => {
-                    const viralScore = post.score || 0;
-                    const isHot = viralScore >= 85;
-                    const isMid = viralScore >= 70 && viralScore < 85;
-                    const platformColor = PLATFORM_COLORS[post.platform] || '#888';
-                    
-                    return (
-                    <div key={post.id}
-                      className={`result-card ${selectedPost?.id === post.id ? 'active' : ''}`}
-                      style={{ animationDelay: `${i * 35}ms`, padding: 0, overflow: 'hidden' }}
+              {/* CARDS */}
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {results.map((post, i) => {
+                  const score = post.score || 0;
+                  const isViral = score >= 80;
+                  const isTrend = score >= 65 && score < 80;
+                  const pColor = PC[post.platform] || '#888';
+                  const isSelected = selectedPost?.id === post.id;
+
+                  return (
+                    <div key={post.id} className={`vcard ${isSelected?'selected':''}`}
+                      style={{ animationDelay:`${Math.min(i*30, 300)}ms` }}
                       onClick={() => { setSelectedPost(post); setAnalysis(''); setGeneratedScript(''); setActiveTab('analysis'); setTranscribeStatus(''); }}>
                       
-                      {/* Platform color bar */}
-                      <div style={{ height: 2, background: `linear-gradient(90deg, ${platformColor}, transparent)` }} />
-                      
-                      <div style={{ padding: '18px 20px' }}>
-                        {/* Row 1: Account + Platform + Time */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                          {/* Avatar */}
-                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: `${platformColor}20`, border: `1px solid ${platformColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>
-                            {post.thumbnail
-                              ? <img src={post.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                              : <span>{PLATFORM_ICONS[post.platform] || '📱'}</span>}
+                      {/* Viral glow top border */}
+                      <div style={{ height:2, background: isViral ? `linear-gradient(90deg, ${pColor}, #F5A623, transparent)` : `linear-gradient(90deg, ${pColor}60, transparent)` }} />
+
+                      <div style={{ padding:'16px 18px', display:'flex', gap:16, alignItems:'center' }}>
+                        
+                        {/* LEFT: Score */}
+                        <div style={{ width:64, flexShrink:0, textAlign:'center' }}>
+                          <div style={{ fontFamily:"'Cabinet Grotesk',monospace", fontSize:32, fontWeight:800, color: isViral ? '#F5A623' : isTrend ? '#F5A62388' : 'rgba(255,255,255,0.15)', lineHeight:1, letterSpacing:'-0.03em', marginBottom:4 }}>
+                            {score}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {post.accountName || 'Unknown'}
-                            </div>
-                            {post.accountFollowers && (
-                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>{post.accountFollowers}</div>
-                            )}
+                          <div style={{ fontSize:8, fontWeight:800, letterSpacing:'0.1em', color: isViral ? '#F5A623aa' : 'rgba(255,255,255,0.15)', textTransform:'uppercase' as const }}>
+                            {viralLabel(score)}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                            <span style={{ background: `${platformColor}18`, color: platformColor, fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 5, letterSpacing: '0.06em' }}>{post.platform?.toUpperCase()}</span>
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace' }}>{post.postedTime}</span>
+                          {/* Score bar */}
+                          <div style={{ marginTop:6, height:2, background:'rgba(255,255,255,0.05)', borderRadius:1, overflow:'hidden' }}>
+                            <div style={{ height:'100%', width:`${score}%`, background: isViral ? '#F5A623' : isTrend ? '#F5A62344' : 'rgba(255,255,255,0.1)', borderRadius:1 }} />
                           </div>
                         </div>
 
-                        {/* Row 2: Hook text */}
-                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', lineHeight: 1.55, marginBottom: 16, fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>
-                          {post.hook || post.description || 'No caption'}
-                        </div>
+                        {/* DIVIDER */}
+                        <div style={{ width:1, height:56, background:'rgba(255,255,255,0.06)', flexShrink:0 }} />
 
-                        {/* Row 3: Stats + Outlier Score */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                          {/* Engagement stats */}
-                          <div style={{ display: 'flex', gap: 14, flex: 1 }}>
-                            {[
-                              { icon: '♥', val: post.likes, color: '#ff4d6d' },
-                              { icon: '◉', val: post.views, color: 'rgba(255,255,255,0.3)' },
-                              { icon: '◎', val: post.comments, color: 'rgba(255,255,255,0.3)' },
-                            ].map(({ icon, val, color }, idx) => (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <span style={{ fontSize: 11, color }}>{icon}</span>
-                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', fontWeight: 600 }}>{val}</span>
-                              </div>
-                            ))}
+                        {/* CENTER: Content */}
+                        <div style={{ flex:1, minWidth:0 }}>
+                          {/* Account row */}
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                            <div style={{ width:22, height:22, borderRadius:'50%', background:`${pColor}18`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, flexShrink:0, overflow:'hidden' }}>
+                              {post.thumbnail
+                                ? <img src={post.thumbnail} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{(e.target as HTMLImageElement).style.display='none'}} />
+                                : <span>{PI[post.platform]||'📱'}</span>}
+                            </div>
+                            <span style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.5)' }}>{post.accountName || 'Unknown'}</span>
+                            {post.accountFollowers && <span style={{ fontSize:11, color:'rgba(255,255,255,0.2)' }}>{post.accountFollowers}</span>}
+                            <div style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>
+                              <span style={{ background:`${pColor}15`, color:pColor, fontSize:9, fontWeight:800, padding:'2px 7px', borderRadius:4, letterSpacing:'0.06em' }}>{post.platform?.toUpperCase()}</span>
+                              {isViral && <span style={{ background:'rgba(245,166,35,0.1)', border:'1px solid rgba(245,166,35,0.2)', color:'#F5A623', fontSize:9, fontWeight:800, padding:'2px 7px', borderRadius:4, letterSpacing:'0.06em' }}>🔥 VIRAL</span>}
+                            </div>
                           </div>
-
-                          {/* Viral Score */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                            {/* Score bar */}
-                            <div style={{ width: 80, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${viralScore}%`, background: isHot ? 'linear-gradient(90deg, #F5A623, #FFB73D)' : isMid ? '#F5A623aa' : 'rgba(255,255,255,0.2)', borderRadius: 2, transition: 'width 0.6s ease' }} />
-                            </div>
-                            {/* Score label */}
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 15, fontWeight: 800, fontFamily: "'Cabinet Grotesk',monospace", color: isHot ? '#F5A623' : isMid ? '#FFB73D99' : 'rgba(255,255,255,0.25)', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                                {viralScore}
-                              </div>
-                              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, fontWeight: 700 }}>SCORE</div>
-                            </div>
-                            {isHot && (
-                              <div style={{ background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.25)', borderRadius: 6, padding: '3px 8px', fontSize: 10, fontWeight: 800, color: '#F5A623', letterSpacing: '0.06em', whiteSpace: 'nowrap' as const }}>
-                                🔥 VIRAL
-                              </div>
-                            )}
+                          {/* Hook */}
+                          <div style={{ fontSize:14, fontWeight:500, color:'rgba(255,255,255,0.82)', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' as const, overflow:'hidden' }}>
+                            {post.hook || post.description || 'No caption'}
                           </div>
                         </div>
+
+                        {/* RIGHT: Stats */}
+                        <div style={{ flexShrink:0, display:'flex', flexDirection:'column', gap:6, alignItems:'flex-end', minWidth:80 }}>
+                          {[
+                            { label:'likes', val:post.likes, color:'#ff4d6d' },
+                            { label:'views', val:post.views, color:'rgba(255,255,255,0.25)' },
+                            { label:'comments', val:post.comments, color:'rgba(255,255,255,0.25)' },
+                          ].map(({label, val, color}, idx) => (
+                            <div key={idx} style={{ textAlign:'right' }}>
+                              <div style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.7)', fontFamily:'monospace', lineHeight:1 }}>{val}</div>
+                              <div style={{ fontSize:9, color:'rgba(255,255,255,0.2)', letterSpacing:'0.04em', textTransform:'uppercase' as const, fontWeight:700 }}>{label}</div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Arrow */}
+                        <div className="card-arrow" style={{ color:'rgba(255,255,255,0.2)', fontSize:16, flexShrink:0 }}>→</div>
                       </div>
                     </div>
-                    );
-                  })}
-                </div>
-
-                {/* Load more */}
-                {results.length > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    <button className="load-more" onClick={loadMore} disabled={loadingMore}>
-                      {loadingMore ? 'Loading...' : 'Load more results'}
-                    </button>
-                  </div>
-                )}
+                  );
+                })}
               </div>
 
-              {/* Right — Analysis panel */}
-              {selectedPost && (
-                <div style={{ background: '#0A0A0A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, overflow: 'hidden', position: 'sticky', top: 100 }}>
-                  {/* Post preview */}
-                  <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: `${PLATFORM_COLORS[selectedPost.platform] || '#333'}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-                        {PLATFORM_ICONS[selectedPost.platform] || '📱'}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{selectedPost.accountName}</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{selectedPost.platform} · {selectedPost.postedTime}</div>
-                      </div>
-                      {selectedPost.viewOriginalUrl && (
-                        <a href={selectedPost.viewOriginalUrl} target="_blank" rel="noopener noreferrer"
-                          style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.08)', padding: '4px 10px', borderRadius: 6, transition: 'all 0.15s' }}
-                          onMouseOver={e => (e.currentTarget.style.color = '#F5A623')}
-                          onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
-                          View ↗
-                        </a>
-                      )}
+              {results.length > 0 && (
+                <button className="load-more" onClick={loadMore} disabled={loadingMore}>
+                  {loadingMore ? 'Loading...' : 'Load more →'}
+                </button>
+              )}
+            </>
+          )}
+
+          {activeNav !== 'search' && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh', flexDirection:'column', gap:12 }}>
+              <div style={{ fontFamily:"'Cabinet Grotesk',sans-serif", fontSize:20, fontWeight:800, color:'rgba(255,255,255,0.08)', letterSpacing:'-0.02em' }}>Coming soon</div>
+              <div style={{ fontSize:13, color:'rgba(255,255,255,0.08)' }}>Stay on Discover for now</div>
+            </div>
+          )}
+        </div>
+
+        {/* ANALYSIS PANEL - slides in */}
+        {selectedPost && (
+          <div style={{ width:400, flexShrink:0, borderLeft:'1px solid rgba(255,255,255,0.06)', background:'#080808', overflowY:'auto', animation:'slideIn 0.25s ease' }}>
+            
+            {/* Post header */}
+            <div style={{ padding:'20px', borderBottom:'1px solid rgba(255,255,255,0.06)', position:'sticky', top:0, background:'rgba(8,8,8,0.95)', backdropFilter:'blur(20px)', zIndex:10 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                <div style={{ width:36, height:36, borderRadius:9, background:`${PC[selectedPost.platform]||'#333'}15`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, border:`1px solid ${PC[selectedPost.platform]||'#333'}20` }}>
+                  {PI[selectedPost.platform]||'📱'}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.8)' }}>{selectedPost.accountName}</div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.25)' }}>{selectedPost.platform} · {selectedPost.postedTime}</div>
+                </div>
+                <button onClick={() => setSelectedPost(null)} style={{ background:'transparent', border:'none', color:'rgba(255,255,255,0.25)', cursor:'pointer', fontSize:18, padding:'4px', lineHeight:1 }}>×</button>
+              </div>
+
+              {/* Viral score prominent */}
+              <div style={{ background:'rgba(255,255,255,0.03)', borderRadius:10, padding:'14px 16px', border:'1px solid rgba(255,255,255,0.06)', marginBottom:14 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.3)', letterSpacing:'0.08em', textTransform:'uppercase' as const }}>Viral Score</span>
+                  <span style={{ fontFamily:"'Cabinet Grotesk',sans-serif", fontSize:24, fontWeight:800, color: (selectedPost.score||0) >= 80 ? '#F5A623' : 'rgba(255,255,255,0.3)', letterSpacing:'-0.02em' }}>{selectedPost.score}/100</span>
+                </div>
+                <div style={{ height:4, background:'rgba(255,255,255,0.05)', borderRadius:2, overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${selectedPost.score||0}%`, background:'linear-gradient(90deg, #F5A623, #FFB73D)', borderRadius:2, transition:'width 0.8s ease' }} />
+                </div>
+              </div>
+
+              {/* Stats grid */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+                {[['❤', selectedPost.likes,'Likes'],['👁', selectedPost.views,'Views'],['💬', selectedPost.comments,'Comments']].map(([icon,val,label],i) => (
+                  <div key={i} style={{ background:'rgba(255,255,255,0.03)', borderRadius:8, padding:'10px 12px', border:'1px solid rgba(255,255,255,0.05)', textAlign:'center' }}>
+                    <div style={{ fontSize:12, fontWeight:800, color:'rgba(255,255,255,0.7)', fontFamily:'monospace', marginBottom:2 }}>{val}</div>
+                    <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', letterSpacing:'0.06em', textTransform:'uppercase' as const, fontWeight:700 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {selectedPost.viewOriginalUrl && (
+                <a href={selectedPost.viewOriginalUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:10, padding:'9px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:8, color:'rgba(255,255,255,0.35)', textDecoration:'none', fontSize:12, fontWeight:600, transition:'all 0.15s' }}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(245,166,35,0.25)';e.currentTarget.style.color='#F5A623'}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';e.currentTarget.style.color='rgba(255,255,255,0.35)'}}>
+                  View Original ↗
+                </a>
+              )}
+            </div>
+
+            {/* Hook preview */}
+            <div style={{ padding:'16px 20px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.25)', letterSpacing:'0.08em', textTransform:'uppercase' as const, marginBottom:8 }}>Content</div>
+              <p style={{ fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.65 }}>{selectedPost.hook || selectedPost.description}</p>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display:'flex', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+              {[['analysis','AI Analysis'],['script','Write Script'],['saved','Saved']].map(([id,label]) => (
+                <button key={id} className={`tab ${activeTab===id?'on':''}`} onClick={() => setActiveTab(id as any)}>{label}</button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <div style={{ padding:'20px' }}>
+              
+              {activeTab === 'analysis' && (
+                <div>
+                  {!analysis && (
+                    <button className="abtn" onClick={async () => {
+                      setAnalysis('loading');
+                      const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post:selectedPost,type:'analysis'})});
+                      const data = await res.json();
+                      setAnalysis(data.result||'Analysis failed');
+                    }}>🧠 Analyze Why This Went Viral</button>
+                  )}
+                  {analysis === 'loading' && (
+                    <div style={{ display:'flex', gap:10, alignItems:'center', color:'rgba(255,255,255,0.3)', fontSize:13, padding:'20px 0' }}>
+                      <div style={{ width:14, height:14, border:'2px solid rgba(245,166,35,0.15)', borderTop:'2px solid #F5A623', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
+                      Analyzing the viral formula...
                     </div>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, marginBottom: 14 }}>{selectedPost.hook}</p>
-                    <div style={{ display: 'flex', gap: 16 }}>
-                      {[['❤', selectedPost.likes], ['👁', selectedPost.views], ['💬', selectedPost.comments]].map(([icon, val], i) => (
-                        <div key={i} style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{val}</div>
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{icon}</div>
-                        </div>
-                      ))}
+                  )}
+                  {analysis && analysis !== 'loading' && (
+                    <div>
+                      <div style={{ fontSize:13, color:'rgba(255,255,255,0.65)', lineHeight:1.8, whiteSpace:'pre-wrap', marginBottom:16 }}>{analysis}</div>
+                      <button className="abtn" onClick={async () => {
+                        setAnalysis('loading');
+                        const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post:selectedPost,type:'analysis'})});
+                        const data = await res.json();
+                        setAnalysis(data.result||'');
+                      }}>↺ Regenerate</button>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'script' && (
+                <div>
+                  <div style={{ marginBottom:14 }}>
+                    <label style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.3)', letterSpacing:'0.08em', textTransform:'uppercase' as const, display:'block', marginBottom:6 }}>Your Style (optional)</label>
+                    <textarea value={userStyle} onChange={e=>setUserStyle(e.target.value)} rows={2}
+                      placeholder="Describe your content style..."
+                      style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'10px 12px', color:'#fff', fontSize:13, fontFamily:"'Satoshi','DM Sans',sans-serif", resize:'none' as const }} />
                   </div>
+                  <button className="abtn" style={{ marginBottom:14 }} disabled={!!generatingScript}
+                    onClick={async () => {
+                      setGeneratingScript(true); setGeneratedScript('');
+                      const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post:selectedPost,type:'script',userStyle,format:selectedFormat})});
+                      const data = await res.json();
+                      setGeneratedScript(data.result||''); setGeneratingScript(false);
+                    }}>
+                    {generatingScript ? '···' : '✍️ Generate My Version'}
+                  </button>
+                  {generatedScript && (
+                    <div>
+                      <div style={{ fontSize:13, color:'rgba(255,255,255,0.65)', lineHeight:1.8, whiteSpace:'pre-wrap', marginBottom:12, background:'rgba(255,255,255,0.03)', borderRadius:10, padding:'14px', border:'1px solid rgba(255,255,255,0.07)' }}>{generatedScript}</div>
+                      <button className="obtn" onClick={() => navigator.clipboard.writeText(generatedScript)}>Copy to clipboard</button>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                  {/* Tabs */}
-                  <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    {[['analysis','Analysis'],['script','Script'],['saved','Saved']].map(([id, label]) => (
-                      <button key={id} className={`tab-btn ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id as any)}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Tab content */}
-                  <div style={{ padding: '20px', maxHeight: 500, overflowY: 'auto' }}>
-                    {activeTab === 'analysis' && (
-                      <div>
-                        {!analysis && (
-                          <button className="gen-btn" style={{ marginBottom: 16 }} onClick={async () => {
-                            setAnalysis('loading');
-                            const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ post: selectedPost, type: 'analysis' }) });
-                            const data = await res.json();
-                            setAnalysis(data.result || 'Analysis failed');
-                          }}>
-                            {analysis === 'loading' ? '···' : '🧠 Analyze This Post'}
-                          </button>
-                        )}
-                        {analysis === 'loading' && (
-                          <div style={{ display: 'flex', gap: 10, alignItems: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-                            <div style={{ width: 14, height: 14, border: '2px solid rgba(245,166,35,0.2)', borderTop: '2px solid #F5A623', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                            Analyzing...
-                          </div>
-                        )}
-                        {analysis && analysis !== 'loading' && (
-                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{analysis}</div>
-                        )}
-                      </div>
-                    )}
-
-                    {activeTab === 'script' && (
-                      <div>
-                        <div style={{ marginBottom: 14 }}>
-                          <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, display: 'block', marginBottom: 6 }}>Your Style</label>
-                          <textarea value={userStyle} onChange={e => setUserStyle(e.target.value)} rows={2}
-                            placeholder="Describe your style or paste examples..."
-                            style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 13, fontFamily: "'Satoshi','DM Sans',sans-serif", resize: 'none' }} />
-                        </div>
-                        <button className="gen-btn" style={{ marginBottom: 14 }} disabled={generatingScript}
-                          onClick={async () => {
-                            setGeneratingScript(true); setGeneratedScript('');
-                            const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ post: selectedPost, type: 'script', userStyle, format: selectedFormat }) });
-                            const data = await res.json();
-                            setGeneratedScript(data.result || ''); setGeneratingScript(false);
-                          }}>
-                          {generatingScript ? '···' : '✍️ Generate Script'}
-                        </button>
-                        {generatedScript && (
-                          <div>
-                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, whiteSpace: 'pre-wrap', marginBottom: 12 }}>{generatedScript}</div>
-                            <button className="copy-btn" onClick={() => navigator.clipboard.writeText(generatedScript)}>Copy Script</button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {activeTab === 'saved' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {savedPosts.length === 0 ? (
-                          <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No saved posts yet</div>
-                        ) : saved.map((post, i) => (
-                          <div key={i} onClick={() => setSelectedPost(post)} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                            <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 4 }}>{post.hook?.slice(0, 60)}...</div>
-                            <div>{post.platform} · {post.likes} likes</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Save button */}
-                  <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <button onClick={() => { if (!savedPosts.find(p => p.id === selectedPost.id)) setSavedPosts([...savedPosts, selectedPost]); }}
-                      style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi',sans-serif", transition: 'all 0.15s' }}
-                      onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(245,166,35,0.3)'; e.currentTarget.style.color = '#F5A623'; }}
-                      onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}>
-                      {savedPosts.find(p => p.id === selectedPost.id) ? '◈ Saved' : '◇ Save Post'}
-                    </button>
-                  </div>
+              {activeTab === 'saved' && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {savedPosts.length === 0 ? (
+                    <div style={{ textAlign:'center', padding:'40px 0', color:'rgba(255,255,255,0.15)', fontSize:13 }}>
+                      <div style={{ fontSize:28, marginBottom:10, opacity:0.5 }}>◇</div>
+                      No saved posts yet
+                    </div>
+                  ) : savedPosts.map((p, i) => (
+                    <div key={i} onClick={() => setSelectedPost(p)} style={{ padding:'12px', background:'rgba(255,255,255,0.03)', borderRadius:9, cursor:'pointer', border:'1px solid rgba(255,255,255,0.06)', transition:'all 0.15s' }}
+                      onMouseOver={e=>{(e.currentTarget as HTMLElement).style.borderColor='rgba(245,166,35,0.2)'}}
+                      onMouseOut={e=>{(e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.06)'}}>
+                      <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.6)', marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.hook?.slice(0,55)}...</div>
+                      <div style={{ fontSize:11, color:'rgba(255,255,255,0.25)' }}>{p.platform} · {p.likes} likes</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
+
+            {/* Save */}
+            <div style={{ padding:'16px 20px', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+              <button className="obtn" onClick={() => { if (!savedPosts.find(p=>p.id===selectedPost.id)) setSavedPosts([...savedPosts,selectedPost]); }}>
+                {savedPosts.find(p=>p.id===selectedPost.id) ? '◈ Saved' : '◇ Save Post'}
+              </button>
+            </div>
           </div>
         )}
-
-        {activeNav !== 'search' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontSize: 40, opacity: 0.2 }}>◎</div>
-            <div style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: 18, fontWeight: 800, color: 'rgba(255,255,255,0.15)', letterSpacing: '-0.01em' }}>Coming soon</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.1)' }}>Focus on Search for now</div>
-          </div>
-        )}
-
-      </main>
+      </div>
     </div>
   );
 }
