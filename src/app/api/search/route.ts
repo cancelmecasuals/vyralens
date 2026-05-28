@@ -116,7 +116,6 @@ async function searchInstagram(keyword: string, page = 0, dateFilter = 'all') {
   const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
   try {
-    // Check DB first
     const { supabaseAdmin } = await import('@/lib/supabase');
     const sb = supabaseAdmin();
     const offset = page * 25;
@@ -127,7 +126,6 @@ async function searchInstagram(keyword: string, page = 0, dateFilter = 'all') {
     const { data: dbPosts } = await query.order('like_count', { ascending: false }).range(offset, offset + 24);
 
     if (dbPosts && dbPosts.length > 0) {
-      // Trigger background refresh if stale
       const oldest = dbPosts[0]?.updated_at;
       if (oldest && new Date(oldest) < new Date(Date.now() - 7*24*60*60*1000)) {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vyralens.vercel.app';
@@ -158,18 +156,14 @@ async function searchInstagram(keyword: string, page = 0, dateFilter = 'all') {
       });
     }
 
-    // DB empty — use ScrapeCreators Google search (finds most viral relevant content)
-    // + Bright Data to get like counts, then store in DB
-    const scKey = process.env.SCRAPECREATORS_API_KEY?.trim();
-    const bdToken = process.env.BRIGHT_DATA_API_KEY?.trim();
+    // DB empty — trigger background crawl and serve live results simultaneously
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vyralens.vercel.app';
-
-    // Fire background crawl to populate DB properly
     fetch(`${siteUrl}/api/crawl?secret=${process.env.CRAWL_SECRET}&keyword=${tag}`).catch(() => {});
 
+    // Live search: ScrapeCreators Google search for relevant viral reels
+    const scKey = process.env.SCRAPECREATORS_API_KEY?.trim();
     if (!scKey) return [];
 
-    // Step 1: Get relevant reel URLs via Google search
     const scRes = await fetch(
       `https://api.scrapecreators.com/v2/instagram/reels/search?query=${encodeURIComponent(keyword)}`,
       { headers: { 'x-api-key': scKey }, signal: AbortSignal.timeout(12000) }
@@ -179,96 +173,20 @@ async function searchInstagram(keyword: string, page = 0, dateFilter = 'all') {
     const reels = scData?.reels || [];
     if (!reels.length) return [];
 
-    // Step 2: Enrich with Bright Data to get like counts
-    if (bdToken) {
-      const bdUrls = reels.slice(0, 20).map((r: any) => ({ url: r.url })).filter((r: any) => r.url);
-      try {
-        const bdRes = await fetch(
-          `https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_lk5ns7kz21pck8jpis&format=json`,
-          {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${bdToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(bdUrls),
-            signal: AbortSignal.timeout(50000),
-          }
-        );
-        if (bdRes.ok) {
-          const bdPosts = await bdRes.json();
-          if (Array.isArray(bdPosts) && bdPosts.length > 0) {
-            // Store in DB for next time
-            let saved = 0;
-            for (const post of bdPosts) {
-              const likes = post.likes || post.num_likes || 0;
-              if (!likes) continue;
-              const views = post.video_view_count || post.views || 0;
-              const rawScore = views > 0 ? views : likes * 15;
-              const isVideo = post.content_type === 'video' || !!post.video_url;
-              const caption = post.description || post.caption || '';
-              const postUrl = post.url || null;
-              const shortcode = post.shortcode || postUrl?.split('/reel/')?.[1]?.split('/')?.[0] || postUrl?.split('/p/')?.[1]?.split('/')?.[0] || '';
-              await sb.from('instagram_posts').upsert({
-                id: shortcode || `sc-${saved}`,
-                keyword: tag, platform: 'Instagram',
-                hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
-                caption, username: post.user_posted || '',
-                full_name: post.user_posted || '',
-                like_count: likes, comment_count: post.num_comments || 0,
-                view_count: views, raw_score: rawScore,
-                media_type: isVideo ? 'video' : 'image',
-                shortcode, post_url: postUrl,
-                thumbnail: post.thumbnail || post.display_url || '',
-                taken_at: post.date_posted ? new Date(post.date_posted).toISOString() : null,
-                updated_at: new Date().toISOString(),
-              }, { onConflict: 'id' });
-              saved++;
-            }
-
-            return bdPosts
-              .sort((a: any, b: any) => (b.likes || b.num_likes || 0) - (a.likes || a.num_likes || 0))
-              .map((post: any, i: number) => {
-                const likes = post.likes || post.num_likes || 0;
-                const views = post.video_view_count || post.views || 0;
-                const rawScore = views > 0 ? views : likes * 15;
-                const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(rawScore + 1, 1)) * 11)));
-                const isVideo = post.content_type === 'video' || !!post.video_url;
-                const caption = post.description || '';
-                const postUrl = post.url || null;
-                const shortcode = post.shortcode || postUrl?.split('/reel/')?.[1]?.split('/')?.[0] || '';
-                return {
-                  id: `ig-${shortcode || i}`, platform: 'Instagram',
-                  hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
-                  description: caption.slice(0, 400),
-                  accountName: `@${post.user_posted || 'creator'}`,
-                  accountFollowers: '',
-                  thumbnail: post.thumbnail || post.display_url || '', thumbnailEmoji: '📸',
-                  views: views > 0 ? formatNum(views) : formatNum(likes * 15),
-                  likes: formatNum(likes), comments: formatNum(post.num_comments || 0),
-                  shares: '—', score: vyraScore, rawScore,
-                  postedTime: post.date_posted ? new Date(post.date_posted).toLocaleDateString() : 'Recent',
-                  type: isVideo ? 'Instagram Reel' : 'Instagram Post',
-                  videoUrl: post.video_url || null, postUrl, viewOriginalUrl: postUrl,
-                  mediaType: isVideo ? 'video' : 'image', caption,
-                };
-              });
-          }
-        }
-      } catch { }
-    }
-
-    // Fallback: return reels without like counts
+    // Return immediately without BD enrichment for speed
+    // BD enrichment happens in background crawl
     return reels.map((r: any, i: number) => ({
-      id: `ig-${r.shortcode || i}`, platform: 'Instagram',
+      id: `ig-${r.shortcode || r.id || i}`, platform: 'Instagram',
       hook: r.caption?.split('\n')[0]?.slice(0, 120) || 'Instagram Reel',
       description: r.caption || '',
-      accountName: `@${r.ownerUsername || 'creator'}`,
+      accountName: `@${r.ownerUsername || r.owner?.username || 'creator'}`,
       accountFollowers: '',
       thumbnail: r.thumbnail_src || r.display_url || '', thumbnailEmoji: '📸',
       views: '—', likes: '—', comments: '—', shares: '—',
-      score: 75, rawScore: 1000000 - (i * 10000),
+      score: 85 - i, rawScore: 10000000 - (i * 100000),
       postedTime: 'Recent',
       type: 'Instagram Reel',
-      videoUrl: null,
-      postUrl: r.url, viewOriginalUrl: r.url,
+      videoUrl: null, postUrl: r.url, viewOriginalUrl: r.url,
       mediaType: 'video', caption: r.caption || '',
     }));
 
