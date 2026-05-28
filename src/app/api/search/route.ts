@@ -118,29 +118,43 @@ async function searchInstagram(keyword: string) {
 
   const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  // Use the highest-rated Instagram Scraper (4.7★, 231K users)
+  // Access Instagram's "Top Posts" section for a hashtag
+  // This is what tools like ViralFindr use — top posts ARE sorted by virality
   const items = await runApifyActor('apify~instagram-scraper', {
     hashtags: [hashtag],
     resultsType: 'posts',
     resultsLimit: 30,
     addParentData: false,
-    minLikes: 500, // Only return posts with meaningful engagement
+    // Don't filter by type — top posts include images and reels
   }, 90);
 
-  if (!items.length) return [];
+  if (!items.length) {
+    // Fallback: try with the hashtag scraper
+    const items2 = await runApifyActor('apify~instagram-hashtag-scraper', {
+      hashtags: [hashtag],
+      resultsLimit: 50,
+      addParentData: false,
+    }, 60);
+    if (!items2.length) return [];
+    return processInstagramItems(items2);
+  }
 
+  return processInstagramItems(items);
+}
+
+function processInstagramItems(items: any[]) {
   return items
     .map((item: any, i: number) => {
       const likes = item.likesCount || 0;
       const comments = item.commentsCount || 0;
       const videoViews = item.videoViewCount || item.videoPlayCount || 0;
-      // Use video views if available, otherwise estimate from likes
+      // Top posts have real engagement — use it directly
       const rawScore = videoViews > 0 ? videoViews : likes * 15;
       const vyraScore = Math.min(99, Math.max(50, Math.round(
-        Math.log10(Math.max(likes + 1, 1)) * 16
+        Math.log10(Math.max(rawScore + 1, 1)) * 11
       )));
       const caption = item.caption || item.alt || '';
-      const isVideo = item.type === 'Video' || !!item.videoUrl;
+      const isVideo = item.type === 'Video' || !!item.videoUrl || item.productType === 'clips';
       return {
         id: `ig-${item.id || item.shortCode || i}`,
         platform: 'Instagram',
@@ -148,13 +162,14 @@ async function searchInstagram(keyword: string) {
         description: caption.slice(0, 400),
         accountName: `@${item.ownerUsername || 'creator'}`,
         accountFollowers: item.ownerFullName || '',
-        thumbnail: item.displayUrl || item.previewUrl || '', thumbnailEmoji: '📸',
-        views: videoViews > 0 ? formatNum(videoViews) : formatNum(likes * 15),
+        thumbnail: item.displayUrl || item.previewUrl || '',
+        thumbnailEmoji: '📸',
+        views: videoViews > 0 ? formatNum(videoViews) : likes > 0 ? formatNum(likes * 15) : '—',
         likes: formatNum(likes),
         comments: formatNum(comments),
         shares: '—',
         score: vyraScore,
-        rawScore,
+        rawScore: rawScore || (likes * 15) || i,
         postedTime: item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recent',
         type: isVideo ? 'Instagram Reel' : 'Instagram Post',
         videoUrl: item.videoUrl || null,
@@ -164,6 +179,7 @@ async function searchInstagram(keyword: string) {
         caption,
       };
     })
+    .filter((r: any) => r.rawScore > 0)
     .sort((a: any, b: any) => b.rawScore - a.rawScore);
 }
 

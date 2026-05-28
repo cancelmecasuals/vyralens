@@ -5,25 +5,20 @@ export async function GET(req: NextRequest) {
   const apifyKey = process.env.APIFY_API_KEY?.trim();
   if (!apifyKey) return NextResponse.json({ error: 'No Apify key' });
 
-  const keyword = req.nextUrl.searchParams.get('keyword') || 'realestate';
-  const actor = req.nextUrl.searchParams.get('actor') || 'apify~instagram-hashtag-scraper';
-
-  const inputMap: Record<string, any> = {
-    'apify~instagram-hashtag-scraper': { hashtags: [keyword], resultsLimit: 5 },
-    'apify~instagram-scraper': { hashtags: [keyword], resultsType: 'posts', resultsLimit: 5 },
-    'apify~instagram-reel-scraper': { hashtags: [keyword], resultsLimit: 5 },
-    'shu8hvrXbJbY3Eb9W~instagram-reel-scraper': { hashtags: [keyword], resultsLimit: 5 },
-  };
-
-  const input = inputMap[actor] || { hashtags: [keyword], resultsLimit: 5 };
+  const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
+  const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
 
   try {
-    const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${apifyKey}&timeout=60&memory=512&maxItems=5`;
+    const url = `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=512&maxItems=5`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-      signal: AbortSignal.timeout(65000),
+      body: JSON.stringify({
+        hashtags: [hashtag],
+        resultsType: 'posts',
+        resultsLimit: 5,
+      }),
+      signal: AbortSignal.timeout(95000),
     });
 
     const status = res.status;
@@ -31,8 +26,23 @@ export async function GET(req: NextRequest) {
     let data;
     try { data = JSON.parse(text); } catch { data = text; }
 
-    return NextResponse.json({ actor, status, input, itemCount: Array.isArray(data) ? data.length : 0, sample: Array.isArray(data) ? data[0] : data });
+    return NextResponse.json({
+      status,
+      itemCount: Array.isArray(data) ? data.length : 0,
+      fields: Array.isArray(data) && data[0] ? Object.keys(data[0]) : [],
+      sample: Array.isArray(data) ? data.slice(0, 2).map((item: any) => ({
+        type: item.type,
+        likesCount: item.likesCount,
+        videoViewCount: item.videoViewCount,
+        commentsCount: item.commentsCount,
+        ownerUsername: item.ownerUsername,
+        caption: item.caption?.slice(0, 100),
+        hasVideoUrl: !!item.videoUrl,
+        hasDisplayUrl: !!item.displayUrl,
+        timestamp: item.timestamp,
+      })) : data,
+    });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message, actor });
+    return NextResponse.json({ error: err.message });
   }
 }
