@@ -117,29 +117,39 @@ export async function GET(req: NextRequest) {
   const accounts = NICHE_ACCOUNTS[tag] || NICHE_ACCOUNTS[keyword.split(' ')[0].toLowerCase()] || [];
   const relatedTags = RELATED_TAGS[tag] || RELATED_TAGS[keyword.split(' ')[0].toLowerCase()] || [tag];
 
-  // SOURCE 1: Viral niche accounts (top posts = highest likes ever)
-  const accountResults = await Promise.all(
-    accounts.slice(0, 20).map(async (handle) => {
-      try {
-        const res = await fetch(
-          `https://api.scrapecreators.com/v2/instagram/user/posts?handle=${handle}&limit=20`,
-          { headers: { 'x-api-key': scKey }, signal: AbortSignal.timeout(10000) }
+  // SOURCE 1: Viral niche accounts via Apify (gets all-time top posts with 1M+ likes)
+  if (accounts.length > 0) {
+    try {
+      const apifyKey = process.env.APIFY_API_KEY?.trim();
+      if (apifyKey) {
+        const apifyRes = await fetch(
+          `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=1024&maxItems=300`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              usernames: accounts.slice(0, 15),
+              resultsType: 'posts',
+              resultsLimit: 20,
+              addParentData: false,
+            }),
+            signal: AbortSignal.timeout(95000),
+          }
         );
-        if (!res.ok) return 0;
-        const data = await res.json();
-        const posts = Array.isArray(data?.posts) ? data.posts :
-                      Array.isArray(data?.data) ? data.data :
-                      Array.isArray(data) ? data : [];
-        let count = 0;
-        for (const p of posts) {
-          const url = p.url || p.postUrl || p.permalink;
-          if (url && addUrl(url)) count++;
+        if (apifyRes.ok) {
+          const items = await apifyRes.json();
+          if (Array.isArray(items)) {
+            let count = 0;
+            for (const item of items) {
+              const url = item.url || item.shortCode ? `https://www.instagram.com/p/${item.shortCode}/` : null;
+              if (url && addUrl(url)) count++;
+            }
+            sources.accounts = count;
+          }
         }
-        return count;
-      } catch { return 0; }
-    })
-  );
-  sources.accounts = accountResults.reduce((a, b) => a + b, 0);
+      }
+    } catch { }
+  }
 
   // SOURCE 2: ScrapeCreators Google search (most relevant viral reels)
   try {
