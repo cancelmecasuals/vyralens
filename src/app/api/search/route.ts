@@ -118,90 +118,89 @@ async function searchInstagram(keyword: string, page = 0) {
 
   const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  try {
-    const pageParam = page > 0 ? `&page=${page}` : '';
-    const url = `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/hashtag_section?tag=${encodeURIComponent(tag)}&section=top${pageParam}`;
-    const res = await fetch(url, {
-      headers: {
-        'x-rapidapi-key': rapidKey,
-        'x-rapidapi-host': 'instagram-api-fast-reliable-data-scraper.p.rapidapi.com',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!res.ok) { console.error('Instagram RapidAPI error:', res.status); return []; }
-    const data = await res.json();
-    const sections = data?.data?.sections || [];
-
-    const items: any[] = [];
-    for (const section of sections) {
-      const medias = section?.layout_content?.medias || [];
-      for (const m of medias) {
-        const media = m?.media || m;
-        if (media && typeof media === 'object' && media.id) {
-          items.push(media);
+  async function fetchSection(section: string, pageNum: number) {
+    try {
+      const pageParam = pageNum > 0 ? `&page=${pageNum}` : '';
+      const url = `https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/hashtag_section?tag=${encodeURIComponent(tag)}&section=${section}${pageParam}`;
+      const res = await fetch(url, {
+        headers: {
+          'x-rapidapi-key': rapidKey!,
+          'x-rapidapi-host': 'instagram-api-fast-reliable-data-scraper.p.rapidapi.com',
+        },
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const sections = data?.data?.sections || [];
+      const items: any[] = [];
+      for (const s of sections) {
+        for (const m of (s?.layout_content?.medias || [])) {
+          const media = m?.media || m;
+          if (media?.id) items.push(media);
         }
       }
-    }
-
-    if (!items.length) return [];
-
-    return items
-      .filter((media: any) => (media.like_count || 0) > 0)
-      .map((media: any, i: number) => {
-        const likes = media.like_count || 0;
-        const comments = media.comment_count || 0;
-        const views = media.view_count || media.play_count || media.video_view_count || 0;
-        const rawScore = views > 0 ? views : likes * 15;
-        const vyraScore = Math.min(99, Math.max(50, Math.round(
-          Math.log10(Math.max(rawScore + 1, 1)) * 11
-        )));
-        const caption = media.caption?.text || '';
-        const isVideo = media.media_type === 2 || media.media_type === 'video';
-        const username = media.user?.username || 'creator';
-        const shortCode = media.code || media.shortcode || '';
-
-        // Get best thumbnail
-        const thumbCandidates = media.image_versions2?.candidates || [];
-        const thumbnail = thumbCandidates[0]?.url || media.thumbnail_url || media.display_url || '';
-
-        // Get video URL from carousel or direct
-        const videoUrl = media.video_url
-          || media.video_dash_manifest
-          || media.carousel_media?.[0]?.video_url
-          || null;
-
-        return {
-          id: `ig-${media.id || i}`,
-          platform: 'Instagram',
-          hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
-          description: caption.slice(0, 400),
-          accountName: `@${username}`,
-          accountFollowers: media.user?.full_name || '',
-          thumbnail, thumbnailEmoji: '📸',
-          views: views > 0 ? formatNum(views) : formatNum(likes * 15),
-          likes: formatNum(likes),
-          comments: formatNum(comments),
-          shares: '—',
-          score: vyraScore,
-          rawScore,
-          postedTime: media.taken_at
-            ? new Date(media.taken_at * 1000).toLocaleDateString()
-            : 'Recent',
-          type: isVideo ? 'Instagram Reel' : 'Instagram Post',
-          videoUrl,
-          postUrl: shortCode ? `https://instagram.com/p/${shortCode}` : null,
-          viewOriginalUrl: shortCode ? `https://instagram.com/p/${shortCode}` : null,
-          mediaType: isVideo ? 'video' : 'image',
-          caption,
-        };
-      })
-      .sort((a: any, b: any) => b.rawScore - a.rawScore);
-
-  } catch (err) {
-    console.error('Instagram RapidAPI error:', err);
-    return [];
+      return items;
+    } catch { return []; }
   }
+
+  // Fetch top posts — also fetch recent to get more content pool
+  const [topItems, recentItems] = await Promise.all([
+    fetchSection('top', page),
+    page === 0 ? fetchSection('recent', 0) : Promise.resolve([]),
+  ]);
+
+  // Merge all items, deduplicate by id
+  const seen = new Set<string>();
+  const allItems: any[] = [];
+  for (const item of [...topItems, ...recentItems]) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      allItems.push(item);
+    }
+  }
+
+  if (!allItems.length) return [];
+
+  return allItems
+    .filter((media: any) => (media.like_count || 0) >= 100) // Only posts with 100+ likes
+    .map((media: any, i: number) => {
+      const likes = media.like_count || 0;
+      const comments = media.comment_count || 0;
+      const views = media.view_count || media.play_count || media.video_view_count || 0;
+      const rawScore = views > 0 ? views : likes * 15;
+      const vyraScore = Math.min(99, Math.max(50, Math.round(
+        Math.log10(Math.max(rawScore + 1, 1)) * 11
+      )));
+      const caption = media.caption?.text || '';
+      const isVideo = media.media_type === 2;
+      const username = media.user?.username || 'creator';
+      const shortCode = media.code || media.shortcode || '';
+      const thumbCandidates = media.image_versions2?.candidates || [];
+      const thumbnail = thumbCandidates[0]?.url || media.thumbnail_url || '';
+      return {
+        id: `ig-${media.id || i}`,
+        platform: 'Instagram',
+        hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
+        description: caption.slice(0, 400),
+        accountName: `@${username}`,
+        accountFollowers: media.user?.full_name || '',
+        thumbnail, thumbnailEmoji: '📸',
+        views: views > 0 ? formatNum(views) : formatNum(likes * 15),
+        likes: formatNum(likes),
+        comments: formatNum(comments),
+        shares: '—',
+        score: vyraScore,
+        rawScore,
+        postedTime: media.taken_at ? new Date(media.taken_at * 1000).toLocaleDateString() : 'Recent',
+        type: isVideo ? 'Instagram Reel' : 'Instagram Post',
+        videoUrl: media.video_url || null,
+        postUrl: shortCode ? `https://www.instagram.com/p/${shortCode}/` : null,
+        viewOriginalUrl: shortCode ? `https://www.instagram.com/p/${shortCode}/` : null,
+        mediaType: isVideo ? 'video' : 'image',
+        caption,
+      };
+    })
+    .sort((a: any, b: any) => b.rawScore - a.rawScore);
 }
 
 async function searchTikTok(keyword: string) {

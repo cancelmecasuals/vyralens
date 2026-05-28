@@ -689,8 +689,8 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                         style={{ padding: '6px 10px', background: savedPosts.find(p => p.id === post.id) ? C.violetDim : 'transparent', border: `1px solid ${C.border}`, borderRadius: 7, color: savedPosts.find(p => p.id === post.id) ? C.violetLight : C.textSub, cursor: 'pointer', fontSize: 14, flexShrink: 0, transition: 'all 0.15s' }}>
                         🔖
                       </button>
-                      {(post.videoUrl || post.postUrl || post.viewOriginalUrl) && (
-                        <a href={post.videoUrl || post.viewOriginalUrl || post.postUrl} target="_blank" rel="noopener noreferrer"
+                      {(post.postUrl || post.viewOriginalUrl || post.videoUrl) && (
+                        <a href={post.postUrl || post.viewOriginalUrl || post.videoUrl} target="_blank" rel="noopener noreferrer"
                           onClick={e => e.stopPropagation()}
                           style={{ padding: '6px 10px', background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 7, color: C.textSub, cursor: 'pointer', fontSize: 11, flexShrink: 0, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
                           ↗
@@ -730,8 +730,8 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
                         <div style={{ fontSize: 11, color: C.textSub }}>{selectedPost.accountName}</div>
                         <div style={{ fontSize: 11, color: C.textSub }}>·</div>
                         <div style={{ fontSize: 11, color: C.textSub }}>{selectedPost.accountFollowers}</div>
-                        {(selectedPost.videoUrl || selectedPost.postUrl || selectedPost.viewOriginalUrl) && (
-                          <a href={selectedPost.videoUrl || selectedPost.viewOriginalUrl || selectedPost.postUrl} target="_blank" rel="noopener noreferrer"
+                        {(selectedPost.postUrl || selectedPost.viewOriginalUrl || selectedPost.videoUrl) && (
+                          <a href={selectedPost.postUrl || selectedPost.viewOriginalUrl || selectedPost.videoUrl} target="_blank" rel="noopener noreferrer"
                             style={{ fontSize: 11, color: C.violet, textDecoration: 'none', marginLeft: 'auto' }}>
                             View Original ↗
                           </a>
