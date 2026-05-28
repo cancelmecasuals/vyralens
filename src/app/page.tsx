@@ -35,7 +35,7 @@ function StatCard({ value, suffix, label }: { value: number, suffix: string, lab
   const { count, ref } = useCounter(value);
   return (
     <div ref={ref} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '32px 24px', textAlign: 'center', transition: 'all 0.3s' }}>
-      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 44, fontWeight: 800, color: '#F5A623', letterSpacing: '-0.02em', marginBottom: 8 }}>{count.toLocaleString()}{suffix}</div>
+      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 44, fontWeight: 800, color: '#F5A623', letterSpacing: '-0.02em', marginBottom: 8 }}>{count.toLocaleString()}{suffix}</div>
       <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>{label}</div>
     </div>
   );
@@ -60,7 +60,7 @@ function FAQ({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div onClick={() => setOpen(!open)} style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '24px 0', cursor: 'pointer' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 16, fontWeight: 600, color: open ? '#F5A623' : 'rgba(255,255,255,0.85)', transition: 'color 0.2s', fontFamily: "'Syne', sans-serif" }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 16, fontWeight: 600, color: open ? '#F5A623' : 'rgba(255,255,255,0.85)', transition: 'color 0.2s', fontFamily: "'Cabinet Grotesk', sans-serif" }}>
         <span>{q}</span>
         <span style={{ color: '#F5A623', fontSize: 22, transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.25s', display: 'inline-block', flexShrink: 0, marginLeft: 16 }}>+</span>
       </div>
@@ -101,7 +101,7 @@ export default function Landing() {
   return (
     <div style={{ background: '#070707', minHeight: '100vh', color: '#fff', fontFamily: "'Satoshi', 'DM Sans', sans-serif", overflowX: 'hidden' }}>
       <style dangerouslySetInnerHTML={{__html:`
-        @import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=syne@800,700&display=swap');
+        @import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=cabinet-grotesk@800,700,500&display=swap');
         *{margin:0;padding:0;box-sizing:border-box}
 
         .btn-g{background:#F5A623;color:#080808;border:none;padding:15px 34px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Satoshi','DM Sans',sans-serif;transition:all 0.25s;letter-spacing:0.01em;position:relative;overflow:hidden}
@@ -161,7 +161,7 @@ export default function Landing() {
       {/* Nav */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(7,7,7,0.85)', backdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(255,255,255,0.06)', height: 66, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 44 }}>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em' }}>
+          <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em' }}>
             VYRA<span style={{ color: '#F5A623' }}>.</span>
           </div>
           <div className="hide-m" style={{ display: 'flex', gap: 32 }}>
@@ -186,7 +186,7 @@ export default function Landing() {
           </span>
         </div>
 
-        <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(54px, 8.5vw, 96px)', fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.04em', marginBottom: 32, maxWidth: 900, opacity: heroVis ? 1 : 0, transform: heroVis ? 'translateY(0)' : 'translateY(30px)', transition: 'all 0.8s ease 0.2s' }}>
+        <h1 style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 'clamp(54px, 8.5vw, 96px)', fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.04em', marginBottom: 32, maxWidth: 900, opacity: heroVis ? 1 : 0, transform: heroVis ? 'translateY(0)' : 'translateY(30px)', transition: 'all 0.8s ease 0.2s' }}>
           Find what's going<br />
           <span style={{ color: '#F5A623', position: 'relative' }}>
             viral
@@ -282,7 +282,7 @@ export default function Landing() {
         <FadeIn>
           <div style={{ textAlign: 'center', marginBottom: 72 }}>
             <div className="tag" style={{ marginBottom: 22 }}>Features</div>
-            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(38px, 5vw, 62px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 18 }}>
+            <h2 style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 'clamp(38px, 5vw, 62px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 18 }}>
               Everything you need to create<br />content that <span style={{ color: '#F5A623' }}>actually wins</span>
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.38)', fontSize: 17, maxWidth: 460, margin: '0 auto', lineHeight: 1.65 }}>Stop guessing. Start knowing exactly what your audience wants to watch.</p>
@@ -300,7 +300,7 @@ export default function Landing() {
             ].map(([icon, title, desc], i) => (
               <div key={i} className="feat-cell">
                 <div style={{ fontSize: 32, marginBottom: 18, filter: 'drop-shadow(0 0 12px rgba(245,166,35,0.2))' }}>{icon}</div>
-                <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, letterSpacing: '-0.01em', marginBottom: 12, color: '#fff' }}>{title}</h3>
+                <h3 style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 18, fontWeight: 800, letterSpacing: '-0.01em', marginBottom: 12, color: '#fff' }}>{title}</h3>
                 <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.37)', lineHeight: 1.72 }}>{desc}</p>
               </div>
             ))}
@@ -313,7 +313,7 @@ export default function Landing() {
         <FadeIn>
           <div style={{ textAlign: 'center', marginBottom: 60 }}>
             <div className="tag" style={{ marginBottom: 22 }}>Results</div>
-            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(34px, 4vw, 52px)', fontWeight: 800, letterSpacing: '-0.03em' }}>
+            <h2 style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 'clamp(34px, 4vw, 52px)', fontWeight: 800, letterSpacing: '-0.03em' }}>
               Creators are already <span style={{ color: '#F5A623' }}>winning</span>
             </h2>
           </div>
@@ -328,7 +328,7 @@ export default function Landing() {
               <div key={i} className="gcard" style={{ padding: '30px' }}>
                 <div style={{ color: '#F5A623', fontSize: 15, marginBottom: 16, letterSpacing: 4 }}>★★★★★</div>
                 <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.58)', lineHeight: 1.75, marginBottom: 20, fontStyle: 'italic' }}>"{quote}"</p>
-                <div style={{ fontWeight: 700, color: '#fff', fontSize: 14, fontFamily: "'Syne', sans-serif" }}>{name}</div>
+                <div style={{ fontWeight: 700, color: '#fff', fontSize: 14, fontFamily: "'Cabinet Grotesk', sans-serif" }}>{name}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{role}</div>
               </div>
             ))}
@@ -341,7 +341,7 @@ export default function Landing() {
         <FadeIn>
           <div style={{ textAlign: 'center', marginBottom: 72 }}>
             <div className="tag" style={{ marginBottom: 22 }}>Pricing</div>
-            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(38px, 5vw, 62px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 16 }}>
+            <h2 style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 'clamp(38px, 5vw, 62px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 16 }}>
               Simple, transparent <span style={{ color: '#F5A623' }}>pricing</span>
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.38)', fontSize: 16 }}>30-day money-back guarantee on all plans. No questions asked.</p>
@@ -355,10 +355,10 @@ export default function Landing() {
               { name:'Agency', price:'$199', desc:'For teams managing multiple brands', features:['Everything in Pro','10 team seats','White-label reports','API access','Dedicated support','30-day guarantee'], hot:false },
             ].map((plan, i) => (
               <div key={i} className={`plan ${plan.hot ? 'hot' : ''}`} onClick={() => router.push('/signup')}>
-                {plan.hot && <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: '#F5A623', color: '#080808', fontSize: 10, fontWeight: 800, padding: '5px 18px', borderRadius: 20, whiteSpace: 'nowrap', letterSpacing: '0.1em', fontFamily: "'Syne', sans-serif" }}>MOST POPULAR</div>}
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase' as const, letterSpacing: '0.12em', marginBottom: 14, fontFamily: "'Syne', sans-serif" }}>{plan.name}</div>
+                {plan.hot && <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: '#F5A623', color: '#080808', fontSize: 10, fontWeight: 800, padding: '5px 18px', borderRadius: 20, whiteSpace: 'nowrap', letterSpacing: '0.1em', fontFamily: "'Cabinet Grotesk', sans-serif" }}>MOST POPULAR</div>}
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase' as const, letterSpacing: '0.12em', marginBottom: 14, fontFamily: "'Cabinet Grotesk', sans-serif" }}>{plan.name}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 }}>
-                  <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 56, fontWeight: 800, color: plan.hot ? '#F5A623' : '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>{plan.price}</span>
+                  <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 56, fontWeight: 800, color: plan.hot ? '#F5A623' : '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>{plan.price}</span>
                   <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 15 }}>/mo</span>
                 </div>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.38)', marginBottom: 30, lineHeight: 1.55 }}>{plan.desc}</p>
@@ -369,7 +369,7 @@ export default function Landing() {
                     </div>
                   ))}
                 </div>
-                <div style={{ width: '100%', padding: '15px', borderRadius: 11, fontSize: 14, fontWeight: 700, background: plan.hot ? '#F5A623' : 'rgba(255,255,255,0.06)', border: plan.hot ? 'none' : '1px solid rgba(255,255,255,0.1)', color: plan.hot ? '#080808' : 'rgba(255,255,255,0.65)', textAlign: 'center' as const, fontFamily: "'Syne', sans-serif", letterSpacing: '0.02em', transition: 'all 0.2s' }}>
+                <div style={{ width: '100%', padding: '15px', borderRadius: 11, fontSize: 14, fontWeight: 700, background: plan.hot ? '#F5A623' : 'rgba(255,255,255,0.06)', border: plan.hot ? 'none' : '1px solid rgba(255,255,255,0.1)', color: plan.hot ? '#080808' : 'rgba(255,255,255,0.65)', textAlign: 'center' as const, fontFamily: "'Cabinet Grotesk', sans-serif", letterSpacing: '0.02em', transition: 'all 0.2s' }}>
                   Get {plan.name} →
                 </div>
               </div>
@@ -383,7 +383,7 @@ export default function Landing() {
         <FadeIn>
           <div style={{ textAlign: 'center', marginBottom: 60 }}>
             <div className="tag" style={{ marginBottom: 22 }}>FAQ</div>
-            <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(34px, 4vw, 52px)', fontWeight: 800, letterSpacing: '-0.03em' }}>Questions? <span style={{ color: '#F5A623' }}>Answered.</span></h2>
+            <h2 style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 'clamp(34px, 4vw, 52px)', fontWeight: 800, letterSpacing: '-0.03em' }}>Questions? <span style={{ color: '#F5A623' }}>Answered.</span></h2>
           </div>
           {[
             ['How is this different from searching TikTok or Instagram directly?','VYRA searches millions of posts across all platforms simultaneously and ranks by actual engagement — not what the algorithm decides to show you. You see what\'s truly viral, not what\'s being promoted.'],
@@ -401,7 +401,7 @@ export default function Landing() {
           <div style={{ background: 'rgba(245,166,35,0.05)', border: '1px solid rgba(245,166,35,0.15)', borderRadius: 28, padding: '100px 48px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 600, background: 'rgba(245,166,35,0.06)', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none', animation: 'pulse-glow 4s ease-in-out infinite' }} />
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(38px, 6vw, 72px)', fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1.0, marginBottom: 22 }}>
+              <h2 style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 'clamp(38px, 6vw, 72px)', fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1.0, marginBottom: 22 }}>
                 Stop creating content<br />that <span style={{ color: '#F5A623' }}>nobody sees.</span>
               </h2>
               <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.42)', marginBottom: 48, maxWidth: 460, margin: '0 auto 48px', lineHeight: 1.65 }}>
@@ -418,7 +418,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '40px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1200, margin: '0 auto', flexWrap: 'wrap', gap: 16, position: 'relative', zIndex: 1 }}>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em' }}>VYRA<span style={{ color: '#F5A623' }}>.</span></div>
+        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em' }}>VYRA<span style={{ color: '#F5A623' }}>.</span></div>
         <div style={{ display: 'flex', gap: 32 }}>{['Privacy','Terms','Support'].map(l => <a key={l} href="#" className="nav-a">{l}</a>)}</div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>© 2026 VYRA. All rights reserved.</div>
       </footer>
