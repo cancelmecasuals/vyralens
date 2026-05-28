@@ -200,12 +200,14 @@ export default function Dashboard() {
             videoUrl: post.videoUrl,
             videoId: post.videoId,
             platform: post.platform,
+            caption: post.description || post.hook,
           }),
         });
         const tData = await tRes.json();
         if (tData.transcript) {
-          transcriptSection = `\nACTUAL VIDEO TRANSCRIPT:\n"${tData.transcript}"\n`;
-          setTranscribeStatus('✅ Transcribed — analyzing...');
+          const source = tData.source === 'audio' ? '✅ Transcribed audio —' : '📝 Analyzing caption —';
+          transcriptSection = `\nCONTENT:\n"${tData.transcript}"\n`;
+          setTranscribeStatus(`${source} analyzing...`);
         } else {
           setTranscribeStatus('🧠 Analyzing from metadata...');
         }
