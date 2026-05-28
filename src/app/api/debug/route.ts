@@ -23,17 +23,22 @@ export async function GET(req: NextRequest) {
     try { data = JSON.parse(text); } catch { data = text.slice(0, 500); }
 
     const items = Array.isArray(data) ? data : [];
-    const maxLikes = items.reduce((max: number, item: any) => Math.max(max, item.likesCount || 0), 0);
+    const firstItem = items[0] || {};
+    const topPosts = firstItem.topPosts || [];
+    const maxLikes = topPosts.reduce((max: number, item: any) => Math.max(max, item.likesCount || 0), 0);
 
     return NextResponse.json({
       status: res.status,
       itemCount: items.length,
+      topPostsCount: topPosts.length,
       maxLikes,
-      top5: items
+      hashtag: firstItem.hashtag,
+      mediaCount: firstItem.mediaCount,
+      top5: topPosts
         .sort((a: any, b: any) => (b.likesCount || 0) - (a.likesCount || 0))
         .slice(0, 5)
-        .map((i: any) => ({ likes: i.likesCount, url: i.url, caption: i.caption?.slice(0, 80) })),
-      sample: items[0] ? Object.keys(items[0]) : data,
+        .map((i: any) => ({ likes: i.likesCount, url: i.url, caption: i.caption?.slice(0, 80), views: i.videoViewCount })),
+      samplePostKeys: topPosts[0] ? Object.keys(topPosts[0]) : [],
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message });
