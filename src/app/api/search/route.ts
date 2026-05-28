@@ -188,8 +188,8 @@ async function searchInstagram(keyword: string, page = 0) {
           postedTime: media.taken_at ? new Date(media.taken_at * 1000).toLocaleDateString() : 'Recent',
           type: isVideo ? 'Instagram Reel' : 'Instagram Post',
           videoUrl: media.video_url || null,
-          postUrl: shortCode ? `https://www.instagram.com/p/${shortCode}/` : null,
-          viewOriginalUrl: shortCode ? `https://www.instagram.com/p/${shortCode}/` : null,
+          postUrl: shortCode ? (isVideo ? `https://www.instagram.com/reel/${shortCode}/` : `https://www.instagram.com/p/${shortCode}/`) : null,
+          viewOriginalUrl: shortCode ? (isVideo ? `https://www.instagram.com/reel/${shortCode}/` : `https://www.instagram.com/p/${shortCode}/`) : null,
           mediaType: isVideo ? 'video' : 'image',
           caption,
         };
