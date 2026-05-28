@@ -118,48 +118,53 @@ async function searchInstagram(keyword: string) {
 
   const hashtag = keyword.replace(/\s+/g, '').toLowerCase();
 
-  const items = await runApifyActor('apify~instagram-hashtag-scraper', {
+  // Use the highest-rated Instagram Scraper (4.7★, 231K users)
+  const items = await runApifyActor('apify~instagram-scraper', {
     hashtags: [hashtag],
+    resultsType: 'posts',
     resultsLimit: 30,
     addParentData: false,
-  }, 80);
+    minLikes: 500, // Only return posts with meaningful engagement
+  }, 90);
 
   if (!items.length) return [];
 
-  return items.map((item: any, i: number) => {
-    // Instagram often hides view counts — use likes as proxy
-    const likes = item.likesCount || 0;
-    const comments = item.commentsCount || 0;
-    // Estimate views from likes (avg 10-15x ratio for Instagram)
-    const estimatedViews = likes > 0 ? likes * 12 : 50000 - (i * 1000);
-    const isVideo = item.type === 'Video' || item.videoUrl;
-    const vyraScore = Math.min(99, Math.max(50, Math.round(
-      Math.log10(Math.max(likes + 1, 1)) * 16 + Math.random() * 5
-    )));
-    const caption = item.caption || '';
-    return {
-      id: `ig-${item.id || item.shortCode || i}`,
-      platform: 'Instagram',
-      hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
-      description: caption.slice(0, 400),
-      accountName: `@${item.ownerUsername || 'creator'}`,
-      accountFollowers: item.ownerFullName || '',
-      thumbnail: item.displayUrl || '', thumbnailEmoji: '📸',
-      views: likes > 0 ? formatNum(estimatedViews) : '—',
-      likes: formatNum(likes),
-      comments: formatNum(comments),
-      shares: '—',
-      score: vyraScore,
-      rawScore: likes > 0 ? estimatedViews : 50000 - (i * 1000),
-      postedTime: item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recent',
-      type: isVideo ? 'Instagram Reel' : 'Instagram Post',
-      videoUrl: item.videoUrl || null,
-      postUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
-      viewOriginalUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
-      mediaType: isVideo ? 'video' : 'image',
-      caption,
-    };
-  }).sort((a: any, b: any) => b.rawScore - a.rawScore);
+  return items
+    .map((item: any, i: number) => {
+      const likes = item.likesCount || 0;
+      const comments = item.commentsCount || 0;
+      const videoViews = item.videoViewCount || item.videoPlayCount || 0;
+      // Use video views if available, otherwise estimate from likes
+      const rawScore = videoViews > 0 ? videoViews : likes * 15;
+      const vyraScore = Math.min(99, Math.max(50, Math.round(
+        Math.log10(Math.max(likes + 1, 1)) * 16
+      )));
+      const caption = item.caption || item.alt || '';
+      const isVideo = item.type === 'Video' || !!item.videoUrl;
+      return {
+        id: `ig-${item.id || item.shortCode || i}`,
+        platform: 'Instagram',
+        hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
+        description: caption.slice(0, 400),
+        accountName: `@${item.ownerUsername || 'creator'}`,
+        accountFollowers: item.ownerFullName || '',
+        thumbnail: item.displayUrl || item.previewUrl || '', thumbnailEmoji: '📸',
+        views: videoViews > 0 ? formatNum(videoViews) : formatNum(likes * 15),
+        likes: formatNum(likes),
+        comments: formatNum(comments),
+        shares: '—',
+        score: vyraScore,
+        rawScore,
+        postedTime: item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'Recent',
+        type: isVideo ? 'Instagram Reel' : 'Instagram Post',
+        videoUrl: item.videoUrl || null,
+        postUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
+        viewOriginalUrl: item.url || (item.shortCode ? `https://instagram.com/p/${item.shortCode}` : null),
+        mediaType: isVideo ? 'video' : 'image',
+        caption,
+      };
+    })
+    .sort((a: any, b: any) => b.rawScore - a.rawScore);
 }
 
 async function searchTikTok(keyword: string) {
