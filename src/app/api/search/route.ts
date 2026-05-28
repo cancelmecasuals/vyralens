@@ -116,169 +116,90 @@ async function searchInstagram(keyword: string, page = 0) {
   const sessionId = process.env.INSTAGRAM_SESSION_ID?.trim();
   const csrfToken = process.env.INSTAGRAM_CSRF_TOKEN?.trim();
   const dsUserId = process.env.INSTAGRAM_DS_USER_ID?.trim();
-
   if (!sessionId) return [];
 
   const tag = keyword.replace(/\s+/g, '').toLowerCase();
 
+  const headers = {
+    'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
+    'X-CSRFToken': csrfToken || '',
+    'X-IG-App-ID': '936619743392459',
+    'X-Requested-With': 'XMLHttpRequest',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
+    'Accept': '*/*',
+    'Accept-Language': 'en-US,en;q=0.9',
+  };
+
   try {
-    // Use Instagram's internal web API — same one ViralFindr uses
     const url = `https://www.instagram.com/api/v1/tags/web_info/?tag_name=${encodeURIComponent(tag)}`;
-
-    const res = await fetch(url, {
-      headers: {
-        'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
-        'X-CSRFToken': csrfToken || '',
-        'X-IG-App-ID': '936619743392459',
-        'X-ASBD-ID': '198387',
-        'X-IG-WWW-Claim': '0',
-        'X-Requested-With': 'XMLHttpRequest',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
-        'Origin': 'https://www.instagram.com',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-origin',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!res.ok) {
-      console.error('Instagram session API error:', res.status);
-      // Try sections endpoint instead
-      return await searchInstagramSections(tag, sessionId, csrfToken, dsUserId, page);
-    }
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
+    if (!res.ok) { console.error('Instagram API error:', res.status); return []; }
 
     const data = await res.json();
-    const hashtagInfo = data?.data?.hashtag;
+    const topSections = data?.data?.top?.sections || [];
+    const recentSections = data?.data?.recent?.sections || [];
+    const allSections = [...topSections, ...recentSections];
 
-    if (!hashtagInfo) {
-      return await searchInstagramSections(tag, sessionId, csrfToken, dsUserId, page);
-    }
-
-    // Get top posts from hashtag info
-    const topPosts = hashtagInfo?.edge_hashtag_to_top_posts?.edges || [];
-    const recentPosts = hashtagInfo?.edge_hashtag_to_media?.edges || [];
-    const allEdges = [...topPosts, ...recentPosts];
-
-    if (!allEdges.length) {
-      return await searchInstagramSections(tag, sessionId, csrfToken, dsUserId, page);
-    }
-
-    return processInstagramEdges(allEdges);
-
-  } catch (err) {
-    console.error('Instagram error:', err);
-    return [];
-  }
-}
-
-async function searchInstagramSections(tag: string, sessionId: string, csrfToken?: string, dsUserId?: string, page = 0) {
-  try {
-    const url = `https://www.instagram.com/api/v1/tags/${encodeURIComponent(tag)}/sections/?tab=top&page=${page}&surface=grid`;
-
-    const res = await fetch(url, {
-      headers: {
-        'Cookie': `sessionid=${sessionId}; csrftoken=${csrfToken}; ds_user_id=${dsUserId};`,
-        'X-CSRFToken': csrfToken || '',
-        'X-IG-App-ID': '936619743392459',
-        'X-Requested-With': 'XMLHttpRequest',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-        'Referer': `https://www.instagram.com/explore/tags/${tag}/`,
-        'Origin': 'https://www.instagram.com',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!res.ok) { console.error('Instagram sections error:', res.status); return []; }
-
-    const data = await res.json();
-    const sections = data?.sections || [];
-    const items: any[] = [];
-
-    for (const section of sections) {
-      const medias = section?.layout_content?.medias || [];
-      for (const m of medias) {
+    const medias: any[] = [];
+    const seen = new Set<string>();
+    for (const section of allSections) {
+      for (const m of (section?.layout_content?.medias || [])) {
         const media = m?.media || m;
-        if (media?.id) items.push(media);
+        if (media?.id && !seen.has(media.id)) {
+          seen.add(media.id);
+          medias.push(media);
+        }
       }
     }
 
-    if (!items.length) return [];
+    if (!medias.length) return [];
 
-    return items
-      .filter((m: any) => (m.like_count || 0) >= 50)
+    return medias
+      .filter((m: any) => (m.like_count || 0) >= 100)
       .map((media: any, i: number) => {
         const likes = media.like_count || 0;
         const comments = media.comment_count || 0;
         const views = media.view_count || media.play_count || media.video_view_count || 0;
         const rawScore = views > 0 ? views : likes * 15;
-        const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(rawScore + 1, 1)) * 11)));
+        const vyraScore = Math.min(99, Math.max(50, Math.round(
+          Math.log10(Math.max(rawScore + 1, 1)) * 11
+        )));
         const caption = media.caption?.text || '';
         const isVideo = media.media_type === 2;
         const username = media.user?.username || 'creator';
-        const shortCode = media.code || '';
+        const shortCode = media.code || media.shortcode || '';
         const thumbCandidates = media.image_versions2?.candidates || [];
+        const thumbnail = thumbCandidates[0]?.url || media.thumbnail_url || '';
         return {
-          id: `ig-${media.id || i}`, platform: 'Instagram',
+          id: `ig-${media.id || i}`,
+          platform: 'Instagram',
           hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
           description: caption.slice(0, 400),
           accountName: `@${username}`,
           accountFollowers: media.user?.full_name || '',
-          thumbnail: thumbCandidates[0]?.url || '',
-          thumbnailEmoji: '📸',
+          thumbnail, thumbnailEmoji: '📸',
           views: views > 0 ? formatNum(views) : formatNum(likes * 15),
-          likes: formatNum(likes), comments: formatNum(comments), shares: '—',
-          score: vyraScore, rawScore,
+          likes: formatNum(likes),
+          comments: formatNum(comments),
+          shares: '—',
+          score: vyraScore,
+          rawScore,
           postedTime: media.taken_at ? new Date(media.taken_at * 1000).toLocaleDateString() : 'Recent',
           type: isVideo ? 'Instagram Reel' : 'Instagram Post',
           videoUrl: media.video_url || null,
           postUrl: shortCode ? `https://www.instagram.com/p/${shortCode}/` : null,
           viewOriginalUrl: shortCode ? `https://www.instagram.com/p/${shortCode}/` : null,
-          mediaType: isVideo ? 'video' : 'image', caption,
+          mediaType: isVideo ? 'video' : 'image',
+          caption,
         };
       })
       .sort((a: any, b: any) => b.rawScore - a.rawScore);
 
-  } catch (err) { console.error('Instagram sections error:', err); return []; }
-}
-
-function processInstagramEdges(edges: any[]) {
-  return edges
-    .map((edge: any, i: number) => {
-      const node = edge.node || edge;
-      const likes = node.edge_liked_by?.count || node.like_count || 0;
-      const comments = node.edge_media_to_comment?.count || node.comment_count || 0;
-      const views = node.video_view_count || node.play_count || 0;
-      const rawScore = views > 0 ? views : likes * 15;
-      const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(rawScore + 1, 1)) * 11)));
-      const caption = node.edge_media_to_caption?.edges?.[0]?.node?.text || node.caption?.text || '';
-      const isVideo = node.is_video || node.__typename === 'GraphVideo' || node.media_type === 2;
-      const shortCode = node.shortcode || node.code || '';
-      const username = node.owner?.username || node.user?.username || 'creator';
-      return {
-        id: `ig-${node.id || i}`, platform: 'Instagram',
-        hook: caption.split('\n')[0]?.slice(0, 120) || 'Instagram Post',
-        description: caption.slice(0, 400),
-        accountName: `@${username}`, accountFollowers: node.owner?.full_name || '',
-        thumbnail: node.thumbnail_src || node.display_url || node.image_versions2?.candidates?.[0]?.url || '',
-        thumbnailEmoji: '📸',
-        views: views > 0 ? formatNum(views) : formatNum(likes * 15),
-        likes: formatNum(likes), comments: formatNum(comments), shares: '—',
-        score: vyraScore, rawScore,
-        postedTime: node.taken_at_timestamp ? new Date(node.taken_at_timestamp * 1000).toLocaleDateString() : 'Recent',
-        type: isVideo ? 'Instagram Reel' : 'Instagram Post',
-        videoUrl: node.video_url || null,
-        postUrl: shortCode ? `https://www.instagram.com/p/${shortCode}/` : null,
-        viewOriginalUrl: shortCode ? `https://www.instagram.com/p/${shortCode}/` : null,
-        mediaType: isVideo ? 'video' : 'image', caption,
-      };
-    })
-    .filter((r: any) => r.rawScore > 0)
-    .sort((a: any, b: any) => b.rawScore - a.rawScore);
+  } catch (err) {
+    console.error('Instagram error:', err);
+    return [];
+  }
 }
 
 async function searchTikTok(keyword: string) {
