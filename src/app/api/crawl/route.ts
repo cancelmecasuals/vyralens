@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
         },
         body: JSON.stringify([{
           url: `https://www.instagram.com/explore/tags/${tag}/`,
-          num_of_posts: 500,
         }]),
         signal: AbortSignal.timeout(30000),
       }
