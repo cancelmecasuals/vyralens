@@ -682,56 +682,89 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
 
                 {/* Results */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {results.map((post, i) => (
-                    <div key={post.id} className={`result-card ${selectedPost?.id === post.id ? 'active' : ''}`}
-                      style={{ animationDelay: `${i * 40}ms` }}
+                  {results.map((post, i) => {
+                    const viralScore = post.score || 0;
+                    const isHot = viralScore >= 85;
+                    const isMid = viralScore >= 70 && viralScore < 85;
+                    const platformColor = PLATFORM_COLORS[post.platform] || '#888';
+                    
+                    return (
+                    <div key={post.id}
+                      className={`result-card ${selectedPost?.id === post.id ? 'active' : ''}`}
+                      style={{ animationDelay: `${i * 35}ms`, padding: 0, overflow: 'hidden' }}
                       onClick={() => { setSelectedPost(post); setAnalysis(''); setGeneratedScript(''); setActiveTab('analysis'); setTranscribeStatus(''); }}>
-                      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                        
-                        {/* Thumbnail */}
-                        <div style={{ width: 52, height: 52, borderRadius: 10, background: post.thumbnail ? 'transparent' : `${PLATFORM_COLORS[post.platform] || '#333'}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-                          {post.thumbnail
-                            ? <img src={post.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                            : <span style={{ fontSize: 22 }}>{PLATFORM_ICONS[post.platform] || '📱'}</span>}
+                      
+                      {/* Platform color bar */}
+                      <div style={{ height: 2, background: `linear-gradient(90deg, ${platformColor}, transparent)` }} />
+                      
+                      <div style={{ padding: '18px 20px' }}>
+                        {/* Row 1: Account + Platform + Time */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                          {/* Avatar */}
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: `${platformColor}20`, border: `1px solid ${platformColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>
+                            {post.thumbnail
+                              ? <img src={post.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                              : <span>{PLATFORM_ICONS[post.platform] || '📱'}</span>}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {post.accountName || 'Unknown'}
+                            </div>
+                            {post.accountFollowers && (
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>{post.accountFollowers}</div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                            <span style={{ background: `${platformColor}18`, color: platformColor, fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 5, letterSpacing: '0.06em' }}>{post.platform?.toUpperCase()}</span>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace' }}>{post.postedTime}</span>
+                          </div>
                         </div>
 
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          {/* Top row */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                            <span style={{ background: `${PLATFORM_COLORS[post.platform] || '#333'}18`, color: PLATFORM_COLORS[post.platform] || '#fff', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 5, letterSpacing: '0.05em' }}>{post.platform}</span>
-                            {post.score >= 85 && (
-                              <span className="outlier-badge" style={{ background: 'rgba(245,166,35,0.12)', color: '#F5A623' }}>🔥 {post.score}/100</span>
-                            )}
-                            {post.score >= 70 && post.score < 85 && (
-                              <span className="outlier-badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>{post.score}/100</span>
-                            )}
-                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto', flexShrink: 0 }}>{post.postedTime}</span>
+                        {/* Row 2: Hook text */}
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', lineHeight: 1.55, marginBottom: 16, fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>
+                          {post.hook || post.description || 'No caption'}
+                        </div>
+
+                        {/* Row 3: Stats + Outlier Score */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                          {/* Engagement stats */}
+                          <div style={{ display: 'flex', gap: 14, flex: 1 }}>
+                            {[
+                              { icon: '♥', val: post.likes, color: '#ff4d6d' },
+                              { icon: '◉', val: post.views, color: 'rgba(255,255,255,0.3)' },
+                              { icon: '◎', val: post.comments, color: 'rgba(255,255,255,0.3)' },
+                            ].map(({ icon, val, color }, idx) => (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ fontSize: 11, color }}>{icon}</span>
+                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', fontWeight: 600 }}>{val}</span>
+                              </div>
+                            ))}
                           </div>
 
-                          {/* Hook */}
-                          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5, marginBottom: 10, fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {post.hook || post.description}
-                          </div>
-
-                          {/* Stats */}
-                          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span className="stat-pill">
-                              <span style={{ color: '#F5A623' }}>❤</span> {post.likes}
-                            </span>
-                            <span className="stat-pill">
-                              <span>👁</span> {post.views}
-                            </span>
-                            <span className="stat-pill">
-                              <span>💬</span> {post.comments}
-                            </span>
-                            {post.accountName && (
-                              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', marginLeft: 'auto' }}>{post.accountName}</span>
+                          {/* Viral Score */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                            {/* Score bar */}
+                            <div style={{ width: 80, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${viralScore}%`, background: isHot ? 'linear-gradient(90deg, #F5A623, #FFB73D)' : isMid ? '#F5A623aa' : 'rgba(255,255,255,0.2)', borderRadius: 2, transition: 'width 0.6s ease' }} />
+                            </div>
+                            {/* Score label */}
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: 15, fontWeight: 800, fontFamily: "'Cabinet Grotesk',monospace", color: isHot ? '#F5A623' : isMid ? '#FFB73D99' : 'rgba(255,255,255,0.25)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                                {viralScore}
+                              </div>
+                              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, fontWeight: 700 }}>SCORE</div>
+                            </div>
+                            {isHot && (
+                              <div style={{ background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.25)', borderRadius: 6, padding: '3px 8px', fontSize: 10, fontWeight: 800, color: '#F5A623', letterSpacing: '0.06em', whiteSpace: 'nowrap' as const }}>
+                                🔥 VIRAL
+                              </div>
                             )}
                           </div>
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Load more */}
@@ -840,7 +873,7 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
 
                     {activeTab === 'saved' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {saved.length === 0 ? (
+                        {savedPosts.length === 0 ? (
                           <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No saved posts yet</div>
                         ) : saved.map((post, i) => (
                           <div key={i} onClick={() => setSelectedPost(post)} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -854,11 +887,11 @@ Rewrite the entire piece with all improvements applied. Make it genuinely viral.
 
                   {/* Save button */}
                   <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <button onClick={() => { if (!saved.find(p => p.id === selectedPost.id)) setSaved([...saved, selectedPost]); }}
+                    <button onClick={() => { if (!savedPosts.find(p => p.id === selectedPost.id)) setSavedPosts([...savedPosts, selectedPost]); }}
                       style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Satoshi',sans-serif", transition: 'all 0.15s' }}
                       onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(245,166,35,0.3)'; e.currentTarget.style.color = '#F5A623'; }}
                       onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}>
-                      {saved.find(p => p.id === selectedPost.id) ? '◈ Saved' : '◇ Save Post'}
+                      {savedPosts.find(p => p.id === selectedPost.id) ? '◈ Saved' : '◇ Save Post'}
                     </button>
                   </div>
                 </div>
