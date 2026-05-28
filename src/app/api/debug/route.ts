@@ -9,23 +9,26 @@ export async function GET(req: NextRequest) {
   const inputMap: Record<string, any> = {
     'breathtaking_anthem~instagram-hashtag-posts-scraper': {
       hashtag: keyword,
-      resultsLimit: 50,
+      resultsLimit: 100,
       sortBy: 'top',
     },
     'scrapeengine~instagram-hashtag-scraper': {
-      startUrls: [{ url: `https://www.instagram.com/explore/tags/${keyword}/` }],
+      startUrls: [`https://www.instagram.com/explore/tags/${keyword}/`],
       maxItems: 50,
-      sort: 'top',
     },
-    'khadinakbar~instagram-hashtag-scraper': {
+    'apify~instagram-hashtag-scraper': {
       hashtags: [keyword],
-      resultsLimit: 50,
-      sortOrder: 'top',
+      resultsLimit: 100,
     },
-    'apify~instagram-scraper': {
+    'zuzka~instagram-hashtag-scraper': {
       hashtags: [keyword],
-      resultsType: 'posts',
-      resultsLimit: 50,
+      maxResults: 100,
+      sortBy: 'top',
+    },
+    'lhotse~instagram-hashtag-scraper': {
+      hashtags: [keyword],
+      limit: 100,
+      type: 'top',
     },
   };
 
