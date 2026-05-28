@@ -4,37 +4,65 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const apifyKey = process.env.APIFY_API_KEY?.trim();
   const keyword = req.nextUrl.searchParams.get('keyword') || 'manifesting';
+  const actor = req.nextUrl.searchParams.get('actor') || 'breathtaking_anthem~instagram-hashtag-posts-scraper';
 
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/parseforge~instagram-hashtag-analytics-scraper/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=512`,
-    {
+  const inputMap: Record<string, any> = {
+    'breathtaking_anthem~instagram-hashtag-posts-scraper': {
+      hashtags: [keyword],
+      resultsLimit: 50,
+      sortBy: 'top',
+    },
+    'scrapeengine~instagram-hashtag-scraper': {
+      hashtag: keyword,
+      maxItems: 50,
+      sort: 'top',
+    },
+    'scraping_solutions~instagram-hashtag-scraper-pro-no-cookies': {
+      hashtags: [keyword],
+      maxResults: 50,
+      sort: 'top',
+    },
+  };
+
+  const input = inputMap[actor] || inputMap['breathtaking_anthem~instagram-hashtag-posts-scraper'];
+
+  try {
+    const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${apifyKey}&timeout=90&memory=512&maxItems=50`;
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hashtag: keyword, maxPosts: 50 }),
+      body: JSON.stringify(input),
       signal: AbortSignal.timeout(95000),
-    }
-  );
+    });
 
-  const data = await res.json();
-  const items = Array.isArray(data) ? data : [];
-  const firstItem = items[0] || {};
-  const topPosts = firstItem.topPosts || [];
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = text.slice(0, 300); }
 
-  return NextResponse.json({
-    totalItems: items.length,
-    topPostsCount: topPosts.length,
-    hashtagName: firstItem.hashtagName,
-    totalPosts: firstItem.totalPosts,
-    avgLikes: firstItem.avgLikes,
-    maxLikes: firstItem.maxLikes,
-    allPosts: topPosts.map((p: any) => ({
-      likes: p.likeCount,
-      views: p.viewCount,
-      username: p.username,
-      url: p.postUrl,
-      caption: p.caption?.slice(0, 100),
-      hashtags: p.hashtags?.slice(0, 5),
-      timestamp: p.timestamp,
-    })),
-  });
+    const items = Array.isArray(data) ? data : (data?.items || data?.posts || []);
+    const withLikes = items.filter((i: any) => (i.likesCount || i.likes || i.diggCount || i.like_count || 0) > 0);
+    const sorted = withLikes.sort((a: any, b: any) => {
+      const aL = a.likesCount || a.likes || a.like_count || 0;
+      const bL = b.likesCount || b.likes || b.like_count || 0;
+      return bL - aL;
+    });
+
+    return NextResponse.json({
+      actor, status: res.status,
+      totalItems: items.length,
+      itemsWithLikes: withLikes.length,
+      maxLikes: sorted[0] ? (sorted[0].likesCount || sorted[0].likes || sorted[0].like_count || 0) : 0,
+      sampleKeys: items[0] ? Object.keys(items[0]).slice(0, 20) : [],
+      top5: sorted.slice(0, 5).map((i: any) => ({
+        likes: i.likesCount || i.likes || i.like_count,
+        views: i.videoViewCount || i.playCount || i.videoPlayCount || i.views,
+        url: i.url || i.postUrl || i.shortCode,
+        caption: (i.caption || i.text || i.description || '').slice(0, 80),
+        hashtags: (i.hashtags || []).slice(0, 5),
+      })),
+      rawSample: typeof data === 'object' ? JSON.stringify(data).slice(0, 400) : data,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message, actor });
+  }
 }
