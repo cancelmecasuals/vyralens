@@ -18,33 +18,33 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const res = await fetch(
-      `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=blended&include_reel=true`,
-      { headers, signal: AbortSignal.timeout(10000) }
-    );
+    const endpoints = [
+      `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=user`,
+      `https://www.instagram.com/api/v1/fbsearch/accounts/?query=${encodeURIComponent(keyword)}&count=30`,
+      `https://www.instagram.com/api/v1/users/search/?query=${encodeURIComponent(keyword)}&count=30`,
+      `https://www.instagram.com/api/v1/fbsearch/web/top_serp/?query=${encodeURIComponent(keyword)}&context=blended&include_reel=false`,
+    ];
 
-    const data = await res.json();
-    
-    // Extract accounts from results
-    const users = data?.users || data?.list || data?.accounts || [];
-    const hashtags = data?.hashtags || [];
-    const places = data?.places || [];
-
-    return NextResponse.json({
-      status: res.status,
-      topLevelKeys: Object.keys(data || {}),
-      usersFound: users.length,
-      hashtagsFound: hashtags.length,
-      users: users.slice(0, 10).map((u: any) => ({
-        username: u.user?.username || u.username,
-        fullName: u.user?.full_name || u.full_name,
-        followers: u.user?.follower_count || u.follower_count,
-        isVerified: u.user?.is_verified || u.is_verified,
-        bio: u.user?.biography?.slice(0, 80) || u.biography?.slice(0, 80),
-        profilePic: u.user?.profile_pic_url || u.profile_pic_url,
-      })),
-      rawSample: JSON.stringify(data).slice(0, 500),
-    });
+    const results: any = {};
+    for (const url of endpoints) {
+      const key = url.split('?')[0].split('/').slice(-2).join('/');
+      try {
+        const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+        const data = await res.json();
+        const users = data?.users || data?.list?.filter((i: any) => i.user || i.username) || data?.accounts || [];
+        results[key] = {
+          status: res.status,
+          usersFound: users.length,
+          topKeys: Object.keys(data || {}).slice(0, 8),
+          firstUser: users[0] ? {
+            username: users[0]?.user?.username || users[0]?.username,
+            followers: users[0]?.user?.follower_count || users[0]?.follower_count,
+            bio: (users[0]?.user?.biography || users[0]?.biography || '').slice(0, 60),
+          } : null,
+        };
+      } catch (e: any) { results[key] = { error: e.message }; }
+    }
+    return NextResponse.json(results);
   } catch (e: any) {
     return NextResponse.json({ error: e.message });
   }
