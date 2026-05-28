@@ -128,6 +128,12 @@ async function searchInstagram(keyword: string, page = 0) {
       .range(offset, offset + 24);
 
     if (dbPosts && dbPosts.length > 0) {
+      // If data is older than 7 days, trigger background refresh
+      const oldest = dbPosts[0]?.updated_at;
+      if (oldest && new Date(oldest) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vyralens.vercel.app';
+        fetch(`${siteUrl}/api/crawl?secret=${process.env.CRAWL_SECRET}&keyword=${tag}&step=auto`).catch(() => {});
+      }
       return dbPosts.map((post: any, i: number) => {
         const views = post.view_count || 0;
         const rawScore = views > 0 ? views : (post.like_count || 0) * 15;
@@ -153,7 +159,9 @@ async function searchInstagram(keyword: string, page = 0) {
       });
     }
 
-    // Database empty — fetch live from Instagram and trigger background crawl
+    // Database empty — trigger background crawl for next time, serve live data now
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vyralens.vercel.app';
+    fetch(`${siteUrl}/api/crawl?secret=${process.env.CRAWL_SECRET}&keyword=${tag}&step=auto`).catch(() => {});
     const sessionId = process.env.INSTAGRAM_SESSION_ID?.trim();
     const csrfToken = process.env.INSTAGRAM_CSRF_TOKEN?.trim();
     const dsUserId = process.env.INSTAGRAM_DS_USER_ID?.trim();
