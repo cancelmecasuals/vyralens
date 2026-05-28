@@ -37,10 +37,10 @@ export async function GET(req: NextRequest) {
   // Source 1: Pull top posts from viral niche accounts via ScrapeCreators
   if (accounts.length > 0) {
     const accountPosts = await Promise.all(
-      accounts.slice(0, 12).map(async (handle) => {
+      accounts.slice(0, 15).map(async (handle) => {
         try {
           const res = await fetch(
-            `https://api.scrapecreators.com/v2/instagram/user/posts?handle=${handle}&limit=12`,
+            `https://api.scrapecreators.com/v2/instagram/user/posts?handle=${handle}&limit=20`,
             { headers: { 'x-api-key': scKey }, signal: AbortSignal.timeout(10000) }
           );
           if (!res.ok) return [];
@@ -112,8 +112,8 @@ export async function GET(req: NextRequest) {
 
   if (!allUrls.length) return NextResponse.json({ error: 'No URLs found', keyword });
 
-  // Enrich with Bright Data
-  const bdUrls = allUrls.slice(0, 100).map(url => ({ url }));
+  // Enrich with Bright Data — process up to 200 URLs
+  const bdUrls = allUrls.slice(0, 200).map(url => ({ url }));
   const bdRes = await fetch(
     `https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_lk5ns7kz21pck8jpis&format=json`,
     {
@@ -128,8 +128,9 @@ export async function GET(req: NextRequest) {
   const posts = await bdRes.json();
   if (!Array.isArray(posts) || !posts.length) return NextResponse.json({ error: 'No BD posts' });
 
+  // Only keep posts with meaningful engagement (500+ likes)
   const sorted = posts
-    .filter((p: any) => (p.likes || p.num_likes || 0) > 0)
+    .filter((p: any) => (p.likes || p.num_likes || 0) >= 500)
     .sort((a: any, b: any) => (b.likes || b.num_likes || 0) - (a.likes || a.num_likes || 0));
 
   // Store in Supabase
