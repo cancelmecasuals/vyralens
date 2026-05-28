@@ -24,7 +24,6 @@ const PLATFORMS = [
   { name: 'TikTok', icon: '🎵', color: '#ff0050' },
   { name: 'Instagram', icon: '📸', color: '#E1306C' },
   { name: 'YouTube', icon: '▶️', color: '#FF0000' },
-  { name: 'Reddit', icon: '🔴', color: '#FF4500' },
   { name: 'X / Twitter', icon: '✖️', color: '#1DA1F2' },
 ];
 

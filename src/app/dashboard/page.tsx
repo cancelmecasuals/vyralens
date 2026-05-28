@@ -18,7 +18,6 @@ const PLATFORMS = [
   { id: 'tiktok', label: 'TikTok', icon: '🎵', color: '#ff0050' },
   { id: 'instagram', label: 'Instagram', icon: '📸', color: '#E1306C' },
   { id: 'youtube', label: 'YouTube', icon: '▶️', color: '#FF0000' },
-  { id: 'reddit', label: 'Reddit', icon: '🔴', color: '#FF4500' },
   { id: 'x', label: 'X / Twitter', icon: '✖️', color: '#1DA1F2' },
 ];
 

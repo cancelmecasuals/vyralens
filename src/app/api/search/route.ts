@@ -105,95 +105,31 @@ async function searchYouTube(keyword: string, pageToken?: string) {
   } catch (err) { console.error('YouTube error:', err); return { results: [], nextPageToken: null }; }
 }
 
-async function searchReddit(keyword: string, after?: string) {
-  const urls = [
-    `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=top&t=year&limit=50${after ? `&after=${after}` : ''}&raw_json=1`,
-    `https://www.reddit.com/search.json?q=${encodeURIComponent(keyword)}&sort=top&t=all&limit=50&raw_json=1`,
-  ];
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(12000),
-      });
-      if (!res.ok) continue;
-      const text = await res.text();
-      if (!text || text.trim().startsWith('<')) continue;
-      let data: any;
-      try { data = JSON.parse(text); } catch { continue; }
-      const children = data?.data?.children;
-      if (!children?.length) continue;
-      const posts = children
-        .filter((p: any) => p.data?.title)
-        .map((post: any) => {
-          const p = post.data;
-          const score = p.score || 0;
-          const vyraScore = Math.min(99, Math.max(50, Math.round(Math.log10(Math.max(score, 1)) * 15)));
-          return {
-            id: `reddit-${p.id}`, platform: 'Reddit',
-            hook: p.title,
-            description: p.selftext?.slice(0, 400) || '',
-            accountName: `u/${p.author}`, accountFollowers: `r/${p.subreddit}`,
-            thumbnail: '', thumbnailEmoji: '🔴',
-            views: formatNum(score * 8), likes: formatNum(score),
-            comments: formatNum(p.num_comments || 0), shares: formatNum(Math.round(score * 0.08)),
-            score: vyraScore, rawScore: score,
-            postedTime: new Date(p.created_utc * 1000).toLocaleDateString(),
-            type: 'Reddit Post',
-            postUrl: `https://reddit.com${p.permalink}`,
-            viewOriginalUrl: `https://reddit.com${p.permalink}`,
-            selfText: p.selftext || '', mediaType: 'text',
-          };
-        });
-      if (posts.length > 0) return { results: posts, after: data?.data?.after || null };
-    } catch { continue; }
-  }
-  return { results: [], after: null };
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const { keyword, platform, pageToken, redditAfter, page = 0 } = await req.json();
+    const { keyword, platform, pageToken, page = 0 } = await req.json();
     if (!keyword?.trim()) return NextResponse.json({ results: [], hasMore: false });
 
     let results: any[] = [];
     let nextPageToken: string | null = null;
-    let nextRedditAfter: string | null = null;
     let hasMore = true;
 
     if (platform === 'all') {
-      const [yt, reddit] = await Promise.all([
-        searchYouTube(keyword, pageToken),
-        searchReddit(keyword, redditAfter),
-      ]);
+      const yt = await searchYouTube(keyword, pageToken);
       nextPageToken = yt.nextPageToken;
-      nextRedditAfter = reddit.after;
-      results = [...yt.results, ...reddit.results];
-
-      // If real data came up short, pad with mock for both platforms
-      if (results.length < 10) {
-        const mockTT = generateMockPage(keyword, 'tiktok', page);
-        const mockIG = generateMockPage(keyword, 'instagram', page);
-        results = [...results, ...mockTT, ...mockIG];
-      }
-      hasMore = true; // Always allow load more
+      const mockTT = generateMockPage(keyword, 'tiktok', page);
+      const mockIG = generateMockPage(keyword, 'instagram', page);
+      const mockX = generateMockPage(keyword, 'x', page).slice(0, 5);
+      results = [...yt.results, ...mockTT, ...mockIG, ...mockX];
+      hasMore = true;
     } else if (platform === 'youtube') {
       const yt = await searchYouTube(keyword, pageToken);
       nextPageToken = yt.nextPageToken;
       results = yt.results;
       if (results.length < 5) results = [...results, ...generateMockPage(keyword, 'youtube', page)];
       hasMore = true;
-    } else if (platform === 'reddit') {
-      const reddit = await searchReddit(keyword, redditAfter);
-      nextRedditAfter = reddit.after;
-      results = reddit.results;
-      if (results.length < 5) results = [...results, ...generateMockPage(keyword, 'reddit', page)];
-      hasMore = true;
     } else {
-      // TikTok, Instagram, X — endless mock with variety
+      // TikTok, Instagram, X — endless mock
       results = generateMockPage(keyword, platform, page);
       hasMore = true;
     }
@@ -201,7 +137,7 @@ export async function POST(req: NextRequest) {
     // Sort everything by virality score
     results = results.sort((a, b) => (b.rawScore || b.score * 10000) - (a.rawScore || a.score * 10000));
 
-    const response = NextResponse.json({ results, hasMore, nextPageToken, redditAfter: nextRedditAfter });
+    const response = NextResponse.json({ results, hasMore, nextPageToken });
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (err: any) {
