@@ -28,7 +28,6 @@ export async function GET(req: NextRequest) {
   // Build input — one URL per account, discover their posts
   const input = accounts.map(username => ({
     url: `https://www.instagram.com/${username}/`,
-    post_type: 'Post,Reel',
   }));
 
   try {
